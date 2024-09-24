@@ -1,0 +1,135 @@
+{
+  "name": "@openhps/dht",
+  "version": "1.0.0",
+  "description": "Open Hybrid Positioning System - Distributed Hash Table",
+  "author": "Maxim Van de Wynckel",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenHPS/openhps-dht.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpenHPS/openhps-dht/issues"
+  },
+  "homepage": "https://openhps.org",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "main": "./dist/cjs/index.js",
+  "types": "./dist/types/index.d.ts",
+  "unpkg": "./dist/web/openhps-dht.min.js",
+  "jsdelivr": "./dist/web/openhps-dht.min.js",
+  "lsd:module": true,
+  "module": "./dist/esm5/index.js",
+  "es2015": "./dist/esm/index.js",
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "mocha --config test/.mocharc.json",
+    "cover": "nyc mocha --config test/.mocharc.json && nyc report --reporter=cobertura",
+    "cover:ci": "nyc mocha --config test/.mocharc.json --reporter mocha-junit-reporter && nyc report --reporter=cobertura",
+    "lint": "eslint src/**",
+    "lint:fix": "npm run lint -- --fix",
+    "clean": "shx rm -rf ./dist && shx rm -rf ./docs/out",
+    "build": "npm run clean && npm-run-all --parallel build:ts:* && npm run build:webpack",
+    "build:quick": "npm-run-all --parallel build:ts:* && npm run build:webpack",
+    "build:typedoc": "typedoc --options docs/typedoc.json",
+    "build:ts:cjs": "tsc --build ./tsconfig/tsconfig.bundle.cjs.json",
+    "build:ts:esm": "tsc --build ./tsconfig/tsconfig.bundle.esm.json",
+    "build:ts:esm5": "tsc --build ./tsconfig/tsconfig.bundle.esm5.json",
+    "build:ts:types": "tsc --build ./tsconfig/tsconfig.bundle.types.json",
+    "build:webpack": "npm-run-all --parallel build:webpack:*",
+    "build:webpack:prod": "webpack --env prod --",
+    "build:webpack:dev": "webpack --env dev --",
+    "publish:development": "npm run bump:beta && npm publish --tag dev",
+    "publish:beta": "npm run bump:beta && npm publish --tag beta",
+    "publish:release": "npm run bump:beta && npm publish --tag latest",
+    "bump:development": "standard-version --prerelease alpha -m 'chore(alpha): %s' --author='ci <ci@openhps.org>'",
+    "bump:beta": "standard-version --prerelease beta -m 'chore(beta): %s' --author='ci <ci@openhps.org>'",
+    "bump:release": "standard-version -m 'chore(release): %s' --author='ci <ci@openhps.org>'"
+  },
+  "keywords": [
+    "openhps",
+    "dht",
+    "distributed hash table"
+  ],
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "peerDependencies": {
+    "@openhps/core": ">=0.4.27",
+    "reflect-metadata": ">=0.1.13"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@openhps/core": ">=0.7.10",
+    "@openhps/rdf": "^0.4.86",
+    "@types/chai": "^4.3.19",
+    "@types/mocha": "^10.0.8",
+    "@types/node": "^22.5.5",
+    "@typescript-eslint/eslint-plugin": ">=8.6.0",
+    "@typescript-eslint/parser": ">=8.6.0",
+    "buffer": "^6.0.3",
+    "chai": "^4",
+    "eslint": "^8",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-deprecation": "^3.0.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-jsdoc": "^50.2.4",
+    "eslint-plugin-prettier": "^5.2.1",
+    "gh-pages": "^6.1.1",
+    "husky": "^9.1.6",
+    "mocha": "^10.7.3",
+    "mocha-junit-reporter": "^2.2.1",
+    "npm-run-all": "^4.1.5",
+    "nyc": "^17.1.0",
+    "prettier": "^3.3.3",
+    "reflect-metadata": ">=0.2.2",
+    "shx": "^0.3.4",
+    "standard-version": "^9.5.0",
+    "stream-browserify": "^3.0.0",
+    "ts-node": "^10.9.2",
+    "typedoc": ">=0.26.7",
+    "typescript": "^5.6.2",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "nyc": {
+    "branches": 0,
+    "lines": 20,
+    "functions": 17,
+    "statements": 20,
+    "include": [
+      "src"
+    ],
+    "exclude": [
+      "test"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ],
+    "cache": true,
+    "all": true,
+    "check-coverage": true,
+    "report-dir": "./coverage"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint",
+      "pre-push": "npm run test",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  }
+}
