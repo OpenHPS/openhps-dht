@@ -29,6 +29,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "prepare:terms": "openhps-rdf -d ./src/terms -n ldht:http://purl.org/ldht/ -m http://purl.org/ldht/ file://terms/ldht.ttl",
     "test": "mocha --config test/.mocharc.json",
     "cover": "nyc mocha --config test/.mocharc.json && nyc report --reporter=cobertura",
     "cover:ci": "nyc mocha --config test/.mocharc.json --reporter mocha-junit-reporter && nyc report --reporter=cobertura",

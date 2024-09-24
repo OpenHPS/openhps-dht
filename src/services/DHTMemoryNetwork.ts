@@ -74,6 +74,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
             let foundValue: string[] = [];
             this.findNodesByKey(key)
                 .then((closestNodes) => {
+                    console.log(closestNodes);
                     if (closestNodes.length > 0) {
                         // Loop through all nodes and check if they have the value
                         // if yes, return the value and stop the loop
