@@ -1,43 +1,7 @@
 import '@openhps/rdf';
-import { DHTNode, LocalDHTNode, NodeID, RemoteDHTNode } from '../models';
+import { DHTNode, LocalDHTNode, NodeID  } from '../models';
 import { DHTNetwork } from './DHTNetwork';
 import { IriString, RDFSerializer } from '@openhps/rdf';
-import { SerializableMember, SerializableObject } from '@openhps/core';
-import { ldht } from '../terms';
-
-@SerializableObject({
-    rdf: {
-        type: ldht.Node
-    }
-})
-class RDFNode extends RemoteDHTNode {
-    @SerializableMember({
-        rdf: {
-            predicate: ldht.nodeID
-        }
-    })
-    nodeID: number;
-
-    addNode(nodeID: NodeID): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-    removeNode(nodeID: NodeID): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-    store(key: number, value: string | string[]): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-    hasValue(key: number): Promise<boolean> {
-        throw new Error('Method not implemented.');
-    }
-    findValue(key: number): Promise<string[]> {
-        throw new Error('Method not implemented.');
-    }
-    ping(): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-
-}
 
 export class DHTRDFNetwork extends DHTNetwork {
     private _defaultURI: IriString;

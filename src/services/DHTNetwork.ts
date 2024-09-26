@@ -31,6 +31,7 @@ export abstract class DHTNetwork {
     /**
      * Get the current node
      * @param {NodeID} nodeID Node ID
+     * @returns {Promise<LocalDHTNode>} Node
      */
     abstract createLocalNode(nodeID: number): Promise<LocalDHTNode>;
 
