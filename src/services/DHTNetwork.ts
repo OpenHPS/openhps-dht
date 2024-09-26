@@ -5,6 +5,7 @@ import { DHTNode, LocalDHTNode, NodeID } from '../models';
  */
 export abstract class DHTNetwork {
     private _node: LocalDHTNode;
+    protected collection: string;
 
     get node(): LocalDHTNode {
         return this._node;
@@ -15,6 +16,10 @@ export abstract class DHTNetwork {
 
     get nodeID(): NodeID {
         return this.node.nodeID;
+    }
+
+    constructor(collection: string = "default") {
+        this.collection = collection
     }
 
     initialize(nodeID: number): Promise<void> {

@@ -1,5 +1,5 @@
 import { SerializableMember, SerializableObject } from "@openhps/core";
-import { IriString, schema } from "@openhps/rdf";
+import { IriString, SerializableThing, schema } from "@openhps/rdf";
 import { ldht } from "../terms";
 
 @SerializableObject({
@@ -7,7 +7,8 @@ import { ldht } from "../terms";
         type: schema.Action,
     },
 })
-export class LDHTAction {
+export class LDHTAction extends SerializableThing {
+    type: IriString;
     @SerializableMember({
         rdf: {
             predicate: ldht.timeout

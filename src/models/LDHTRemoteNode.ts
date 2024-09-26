@@ -1,7 +1,9 @@
-import { SerializableMember, SerializableObject } from '@openhps/core';
+import { SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
 import { ldht } from '../terms';
 import { RemoteDHTNode } from './RemoteDHTNode';
 import { NodeID } from './DHTNode';
+import { LDHTAction } from './LDHTAction';
+import { IriString, schema } from '@openhps/rdf';
 
 @SerializableObject({
     rdf: {
@@ -15,6 +17,22 @@ export class LDHTRemoteNode extends RemoteDHTNode {
         }
     })
     nodeID: number;
+    @SerializableMapMember(String, String, {
+        rdf: {
+            predicate: schema.potentialAction
+        }
+    })
+    actions: Map<IriString, IriString> = new Map();
+
+    createAction(action: LDHTAction): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const container = this.actions.get(action.type);
+            if (!container) {
+                return reject(new Error('Action not supported'));
+            }
+            
+        });
+    }
 
     addNode(nodeID: NodeID): Promise<void> {
         return new Promise((resolve, reject) => {

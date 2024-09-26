@@ -5,6 +5,7 @@ export type NodeID = number;
  */
 export interface DHTNode {
     nodeID: number;
+    collection: string;
 
     /**
      * Add a node to the network. This function is executed on the target node.

@@ -1,20 +1,58 @@
-import { NumberType, SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
+import { NumberType, Serializable, SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
 import { DHTNode, NodeID } from './DHTNode';
 import { DHTNetwork } from '../services/DHTNetwork';
+import { ldht } from '../terms';
+import { RDFBuilder, IriString, tree, DataFactory, Thing } from '@openhps/rdf';
 
 const K = 20;
 
 @SerializableObject({
     name: 'DHTNode',
+    rdf: {
+        type: ldht.Node
+    }
 })
 export class LocalDHTNode implements DHTNode {
     @SerializableMember({
         numberType: NumberType.INTEGER,
+        rdf: {
+            predicate: ldht.nodeID
+        }
     })
     nodeID: number;
-    @SerializableMember()
+    @SerializableMember({
+        rdf: {
+            
+        }
+    })
+    collection: string;
+    @SerializableMember({
+        rdf: {
+            identifier: true,
+        }
+    })
     locator: string;
-    @SerializableMapMember(String, String)
+    @SerializableMapMember(String, String, {
+        rdf: {
+            predicate: undefined,
+            serializer: (value: Map<number, string[]>, object?: LocalDHTNode) => {
+                // Put the data as tree:member's for the collection
+                const collection = RDFBuilder.namedNode(object.collection as IriString);
+                value.forEach((values, key) => {
+                    values.forEach((value) => {
+                        collection.add(tree.member, RDFBuilder.blankNode()
+                            .add(ldht.key, key)
+                            .add(ldht.value, DataFactory.namedNode(value))
+                            .build());
+                    });
+                });
+                return collection.build();
+            },
+            deserializer: (thing: Thing, dataType?: Serializable<any>) => {
+                return undefined;
+            }
+        }
+    })
     dataStore?: Map<number, string[]>;
     @SerializableMapMember(Number, Array)
     buckets: Map<number, NodeID[]>;

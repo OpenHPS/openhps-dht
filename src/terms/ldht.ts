@@ -13,6 +13,15 @@ type HydraVariableRepresentation = IriString; // eslint-disable-line
 type OtherIndividual = IriString; // eslint-disable-line
 
 /**
+ * Entry
+ * 
+ * 
+ *
+ * http://purl.org/ldht/Entry
+ */
+export const Entry: OwlClass = 'http://purl.org/ldht/Entry';
+
+/**
  * Node
  * 
  * A dht:Node is a node in a distributed hash tree that may contain relations to other nodes in the distributed hash tree.
@@ -56,6 +65,24 @@ export const RemoveNodeAction: OwlClass = 'http://purl.org/ldht/RemoveNodeAction
  * http://purl.org/ldht/StoreValueAction
  */
 export const StoreValueAction: OwlClass = 'http://purl.org/ldht/StoreValueAction';
+
+/**
+ * key
+ * 
+ * 
+ *
+ * http://purl.org/ldht/key
+ */
+export const key: OwlObjectProperty = 'http://purl.org/ldht/key';
+
+/**
+ * value
+ * 
+ * 
+ *
+ * http://purl.org/ldht/value
+ */
+export const value: OwlObjectProperty = 'http://purl.org/ldht/value';
 
 /**
  * node identifier
