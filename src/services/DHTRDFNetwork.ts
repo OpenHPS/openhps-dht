@@ -7,9 +7,9 @@ export class DHTRDFNetwork extends DHTNetwork {
     private _defaultURI: IriString;
     protected nodeHandler: DHTNode;
 
-    constructor(uri: IriString) {
-        super();
-        this._defaultURI = uri;
+    constructor(collectionURI: IriString, uri?: IriString) {
+        super(collectionURI);
+        this._defaultURI = uri || collectionURI;
     }
 
 
@@ -26,30 +26,44 @@ export class DHTRDFNetwork extends DHTNetwork {
     }
 
     addNode(node: DHTNode): Promise<void> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     removeNode(node: DHTNode): Promise<void> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     findNodeById(nodeID: NodeID): Promise<DHTNode> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     findNodesByKey(key: number, count?: number): Promise<DHTNode[]> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     findValue(key: number): Promise<string[]> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     storeValue(key: number, value: string): Promise<void> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     ping(): Promise<void> {
-        throw new Error('Method not implemented.');
+        return new Promise((resolve, reject) => {
+            
+        });
     }
 }

@@ -5,6 +5,9 @@ import { DHTNode, LocalDHTNode, NodeID } from '../models';
  */
 export abstract class DHTNetwork {
     private _node: LocalDHTNode;
+    /**
+     * Collection name identifying the network
+     */
     protected collection: string;
 
     get node(): LocalDHTNode {
@@ -71,6 +74,7 @@ export abstract class DHTNetwork {
     /**
      * Find value by key
      * @param {number} key Key to find
+     * @returns {Promise<string[]>} Value found or empty array
      */
     abstract findValue(key: number): Promise<string[]>;
     /**

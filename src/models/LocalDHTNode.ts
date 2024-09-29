@@ -22,7 +22,9 @@ export class LocalDHTNode implements DHTNode {
     nodeID: number;
     @SerializableMember({
         rdf: {
-            
+            serializer: (value: LocalDHTNode) => {
+                return RDFBuilder.namedNode(value.collection as IriString).build();
+            },
         }
     })
     collection: string;
@@ -73,8 +75,8 @@ export class LocalDHTNode implements DHTNode {
         return this._store(key, value, this.network, visitedNodes, maxHops);
     }
 
-    findValue(key: number): Promise<string[]> {
-        return this._findValue(key, this.network);
+    findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
+        return this._findValue(key, this.network, visitedNodes, maxHops);
     }
 
     ping(): Promise<void> {
@@ -185,18 +187,25 @@ export class LocalDHTNode implements DHTNode {
         });
     }
 
-    private _findValue(key: number, network: DHTNetwork): Promise<string[]> {
+    private _findValue(key: number, network: DHTNetwork, visitedNodes: Set<NodeID> = new Set(), maxHops: number = 5): Promise<string[]> {
         return new Promise((resolve, reject) => {
             if (this.dataStore.has(key)) {
                 return resolve(this.dataStore.get(key)!);
             }
 
+            if (maxHops <= 0) {
+                resolve([]);
+                return;
+            }
+
+            // Mark the current node as visited
+            visitedNodes.add(this.nodeID);
             this._findNodeByKey(key, network)
                 .then((closestNode) => {
-                    if (closestNode && closestNode.nodeID !== this.nodeID) {
-                        return closestNode.findValue(key).then((value) => ({ value, closestNode }));
+                    if (closestNode && closestNode.nodeID !== this.nodeID && !visitedNodes.has(closestNode.nodeID)) {
+                        return closestNode.findValue(key, visitedNodes, maxHops--).then((value) => ({ value, closestNode }));
                     } else {
-                        reject(new Error('Value not found'));
+                        resolve([]);
                     }
                 })
                 .then((value) => {
