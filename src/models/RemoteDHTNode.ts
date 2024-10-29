@@ -4,6 +4,7 @@ import { DHTNode, NodeID } from './DHTNode';
  * Proxy handler for a remote DHT node
  */
 export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
+    collection: string;
     nodeID: number;
 
     get?(target: DHTNode, p: PropertyKey, receiver: any): any {

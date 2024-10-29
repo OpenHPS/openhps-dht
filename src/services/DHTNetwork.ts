@@ -7,13 +7,22 @@ export abstract class DHTNetwork {
     private _node: LocalDHTNode;
     protected collection: string;
 
+    /**
+     * Get the local node that is part of the network
+     */
     get node(): LocalDHTNode {
         return this._node;
     }
+    /**
+     * Set the local node that is part of the network
+     */
     set node(node: LocalDHTNode) {
         this._node = node;
     }
 
+    /**
+     * Get the node identifier
+     */
     get nodeID(): NodeID {
         return this.node.nodeID;
     }
@@ -22,6 +31,11 @@ export abstract class DHTNetwork {
         this.collection = collection
     }
 
+    /**
+     * Initialize the network
+     * @param nodeID Node identifier to use as the local node
+     * @returns {Promise<void>} Promise when the network is initialized
+     */
     initialize(nodeID: number): Promise<void> {
         return new Promise((resolve, reject) => {
             this.createLocalNode(nodeID).then((node) => {

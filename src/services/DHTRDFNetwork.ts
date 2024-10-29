@@ -3,15 +3,17 @@ import { DHTNode, LocalDHTNode, NodeID  } from '../models';
 import { DHTNetwork } from './DHTNetwork';
 import { IriString, RDFSerializer } from '@openhps/rdf';
 
+/**
+ * Distributed hash table RDF network
+ */
 export class DHTRDFNetwork extends DHTNetwork {
     private _defaultURI: IriString;
     protected nodeHandler: DHTNode;
-
+    
     constructor(uri: IriString) {
         super();
         this._defaultURI = uri;
     }
-
 
     createLocalNode(nodeID: number): Promise<LocalDHTNode> {
         return new Promise((resolve, reject) => {
@@ -25,6 +27,11 @@ export class DHTRDFNetwork extends DHTNetwork {
         });
     }
 
+    /**
+     * Add a node to the network
+     * @param {DHTNode} node Node to add
+     * @returns {Promise<void>} Promise when the node is added
+     */
     addNode(node: DHTNode): Promise<void> {
         throw new Error('Method not implemented.');
     }

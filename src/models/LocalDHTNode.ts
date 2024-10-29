@@ -96,7 +96,7 @@ export class LocalDHTNode implements DHTNode {
 
             const bucket = this.buckets.get(bucketIndex)!;
 
-            // Check if the node is already in the bucket
+            // Check if the node is already in the bucket`
             if (!bucket.includes(nodeID)) {
                 if (bucket.length >= K) {
                     // If the bucket is full, remove the oldest node (simple eviction policy)

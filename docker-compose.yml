@@ -1,0 +1,8 @@
+version: '3.7'
+
+services:
+  test-server1:
+    image: solidproject/community-server
+    command: -c /config/test1.json --baseUrl http://solid.maximvdw.be/ -f /data
+    volumes:
+      - ./docker/config:/config

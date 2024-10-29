@@ -37,6 +37,12 @@ export class DHTService extends Service {
         return this.network.removeNode(node);
     }
 
+    /**
+     * Store a value in the DHT
+     * @param {number} key Hashed key 
+     * @param {string} value Value to store 
+     * @returns {Promise<void>} Promise that resolves once the value is stored
+     */
     storeValue(key: number, value: string): Promise<void> {
         return this.network.storeValue(key, value);
     }

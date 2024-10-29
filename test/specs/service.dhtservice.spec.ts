@@ -10,6 +10,7 @@ describe('DHTService', () => {
         before((done) => {
             service = new DHTService();
             service.emitAsync('build').then(() => {
+                console.log(service.hash(90,180));
                 done();
             }).catch(done);
         });
