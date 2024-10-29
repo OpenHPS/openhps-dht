@@ -1,16 +1,15 @@
 import 'mocha';
 import { expect } from 'chai';
-import { DHTService } from '../../src';
+import { DHTRDFNetwork, DHTService } from '../../src';
 import { DHTMemoryNetwork } from '../../src/services/DHTMemoryNetwork';
 
-describe('DHTService', () => {
+describe('DHTRDFService', () => {
     describe('constructor()', () => {
         let service: DHTService;
 
         before((done) => {
-            service = new DHTService();
+            service = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service.emitAsync('build').then(() => {
-                console.log(service.hash(90,180));
                 done();
             }).catch(done);
         });
@@ -25,7 +24,7 @@ describe('DHTService', () => {
         let service: DHTService;
 
         before((done) => {
-            service = new DHTService();
+            service = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service.emitAsync('build').then(() => {
                 done();
             }).catch(done);
@@ -66,9 +65,9 @@ describe('DHTService', () => {
 
         before((done) => {
             DHTMemoryNetwork.reset();
-            service1 = new DHTService();
-            service2 = new DHTService();
-            service3 = new DHTService();  
+            service1 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
+            service2 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
+            service3 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
 
             Promise.all([
                 service1.emitAsync('build'),
@@ -107,9 +106,9 @@ describe('DHTService', () => {
 
         before((done) => {
             DHTMemoryNetwork.reset();
-            service1 = new DHTService();
-            service2 = new DHTService();
-            service3 = new DHTService();  
+            service1 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
+            service2 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
+            service3 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
 
             Promise.all([
                 service1.emitAsync('build'),

@@ -40,8 +40,10 @@ export interface DHTNode {
     /**
      * Find a value in the node.
      * @param key
+     * @param {Set<NodeID>} visitedNodes Visited nodes
+     * @param {number} maxHops Maximum hops
      */
-    findValue(key: number): Promise<string[]>;
+    findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]>;
 
     /**
      * Ping the node and propagate the ping to other nodes.
