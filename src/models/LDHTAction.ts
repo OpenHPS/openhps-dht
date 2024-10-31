@@ -7,20 +7,29 @@ import { ldht } from "../terms";
         type: schema.Action,
     },
 })
-export class LDHTAction extends SerializableThing {
-    type: IriString;
+export abstract class LDHTAction extends SerializableThing {
+    type: IriString = schema.Action;
+
     @SerializableMember({
         rdf: {
             predicate: ldht.timeout
         }
     })
     timeout?: number;
+
     @SerializableMember({
         rdf: {
             predicate: schema.actionStatus
         }
     })
     actionStatus?: IriString;
+
+    @SerializableMember({
+        rdf: {
+            predicate: schema.agent
+        }
+    })
+    agent: IriString;
 }
 
 export class ActionStatus {
