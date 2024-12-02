@@ -69,8 +69,9 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
-    "@openhps/core": ">=0.7.10",
-    "@openhps/rdf": "^0.4.89",
+    "@openhps/core": "0.7.11",
+    "@openhps/rdf": "0.4.96",
+    "@openhps/solid": "0.2.10",
     "@types/chai": "^4.3.19",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.5",

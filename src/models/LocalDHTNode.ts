@@ -1,60 +1,22 @@
-import { NumberType, Serializable, SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
+import { NumberType, SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
 import { DHTNode, NodeID } from './DHTNode';
 import { DHTNetwork } from '../services/DHTNetwork';
-import { ldht } from '../terms';
-import { RDFBuilder, IriString, tree, DataFactory, Thing } from '@openhps/rdf';
 
 const K = 20;
 
 @SerializableObject({
     name: 'DHTNode',
-    rdf: {
-        type: ldht.Node
-    }
 })
 export class LocalDHTNode implements DHTNode {
     @SerializableMember({
         numberType: NumberType.INTEGER,
-        rdf: {
-            predicate: ldht.nodeID
-        }
     })
     nodeID: number;
-    @SerializableMember({
-        rdf: {
-            serializer: (value: LocalDHTNode) => {
-                return RDFBuilder.namedNode(value.collection as IriString).build();
-            },
-        }
-    })
+    @SerializableMember()
     collection: string;
-    @SerializableMember({
-        rdf: {
-            identifier: true,
-        }
-    })
+    @SerializableMember()
     locator: string;
-    @SerializableMapMember(String, String, {
-        rdf: {
-            predicate: undefined,
-            serializer: (value: Map<number, string[]>, object?: LocalDHTNode) => {
-                // Put the data as tree:member's for the collection
-                const collection = RDFBuilder.namedNode(object.collection as IriString);
-                value.forEach((values, key) => {
-                    values.forEach((value) => {
-                        collection.add(tree.member, RDFBuilder.blankNode()
-                            .add(ldht.key, key)
-                            .add(ldht.value, DataFactory.namedNode(value))
-                            .build());
-                    });
-                });
-                return collection.build();
-            },
-            deserializer: (thing: Thing, dataType?: Serializable<any>) => {
-                return undefined;
-            }
-        }
-    })
+    @SerializableMapMember(String, String)
     dataStore?: Map<number, string[]>;
     @SerializableMapMember(Number, Array)
     buckets: Map<number, NodeID[]>;
@@ -71,16 +33,100 @@ export class LocalDHTNode implements DHTNode {
         return Math.abs(a ^ b);
     }
 
-    store(key: number, value: string | string[], visitedNodes?: Set<NodeID>, maxHops?: number): Promise<void> {
-        return this._store(key, value, this.network, visitedNodes, maxHops);
+    store(key: number, value: string | string[], visitedNodes: Set<NodeID> = new Set(), maxHops: number = 0): Promise<void> {
+        return new Promise((resolve, reject) => {
+            if (maxHops <= 0) {
+                this.storeLocal(key, value).then(resolve).catch(reject);
+                return;
+            }
+
+            this._findNodeByKey(key)
+                .then((closestNode) => {
+                    if (closestNode.nodeID === this.nodeID || visitedNodes.has(closestNode.nodeID)) {
+                        // Store locally
+                        this.storeLocal(key, value).then(resolve).catch(reject);
+                    } else {
+                        // Mark the current node as visited
+                        visitedNodes.add(this.nodeID);
+                        // Pass the value to the closest node for storage
+                        return closestNode.store(key, value, visitedNodes, maxHops - 1);
+                    }
+                })
+                .then(resolve).catch(reject);
+        });
     }
 
     findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
-        return this._findValue(key, this.network, visitedNodes, maxHops);
+        return new Promise((resolve, reject) => {
+            if (this.dataStore.has(key)) {
+                return resolve(this.dataStore.get(key)!);
+            }
+
+            if (maxHops <= 0) {
+                resolve([]);
+                return;
+            }
+
+            // Mark the current node as visited
+            visitedNodes.add(this.nodeID);
+            this._findNodeByKey(key)
+                .then((closestNode) => {
+                    if (closestNode && closestNode.nodeID !== this.nodeID && !visitedNodes.has(closestNode.nodeID)) {
+                        return closestNode.findValue(key, visitedNodes, maxHops--).then((value) => ({ value, closestNode }));
+                    } else {
+                        resolve([]);
+                    }
+                })
+                .then((value) => {
+                    if (value.value) {
+                        // Cache the value locally if this node is close enough to the key
+                        const distanceToClosestNode = this.xorDistance(key, value.closestNode.nodeID);
+                        const distanceToThisNode = this.xorDistance(key, this.nodeID);
+
+                        if (distanceToThisNode < distanceToClosestNode) {
+                            this.dataStore.set(key, value.value);
+                        }
+                    }
+                    resolve(value.value);
+                })
+                .catch(reject);
+        });
     }
 
     ping(): Promise<void> {
-        return this._ping(this.network);
+        return new Promise((resolve) => {
+            for (const bucket of this.buckets.values()) {
+                for (const nodeId of bucket) {
+                    const node = this.network.findNodeById(nodeId);
+                    if (!node) {
+                        // Find keys that were stored on the failed node
+                        const keysToRedistribute: Array<[number, string[]]> = [];
+                        for (const [key, value] of this.dataStore) {
+                            keysToRedistribute.push([key, value]);
+                        }
+
+                        Promise.all(
+                            keysToRedistribute.map(([key, value]) =>
+                                this.network.findNodesByKey(key).then((closestNodes) => {
+                                    // If the failed node was among the k closest nodes, redistribute the key
+                                    if (closestNodes.find((node) => node.nodeID === nodeId)) {
+                                        return this.store(key, value);
+                                    }
+                                }),
+                            ),
+                        )
+                            .then(() => {
+                                resolve();
+                            })
+                            .catch((error) => {
+                                console.error('Error redistributing keys:', error);
+                                resolve();
+                            });
+                    }
+                }
+            }
+            resolve();
+        });
     }
 
     /**
@@ -90,6 +136,12 @@ export class LocalDHTNode implements DHTNode {
      */
     addNode(nodeID: NodeID): Promise<void> {
         return new Promise((resolve) => {
+            if (nodeID === this.nodeID) {
+                // Do not add itself
+                resolve();
+                return;
+            }
+
             const distance = this.xorDistance(this.nodeID, nodeID);
             const bucketIndex = Math.floor(Math.log2(distance)); // Determine bucket
             if (!this.buckets.has(bucketIndex)) {
@@ -132,47 +184,16 @@ export class LocalDHTNode implements DHTNode {
         });
     }
 
-    private _store(
-        key: number,
-        value: string | string[],
-        network: DHTNetwork,
-        visitedNodes: Set<NodeID> = new Set(),
-        maxHops: number = 5,
-    ): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (maxHops <= 0) {
-                const values = this.dataStore.get(key) || [];
-                if (Array.isArray(value)) {
-                    values.push(...value);
-                } else {
-                    values.push(value);
-                }
-                return;
+    protected storeLocal(key: number, value: string | string[]): Promise<void> {
+        return new Promise((resolve) => {
+            const values = this.dataStore.get(key) || [];
+            if (Array.isArray(value)) {
+                values.push(...value);
+            } else {
+                values.push(value);
             }
-
-            this._findNodeByKey(key, network)
-                .then((closestNode) => {
-                    if (closestNode.nodeID === this.nodeID || visitedNodes.has(closestNode.nodeID)) {
-                        // Store locally
-                        const values = this.dataStore.get(key) || [];
-                        if (Array.isArray(value)) {
-                            values.push(...value);
-                        } else {
-                            values.push(value);
-                        }
-                        this.dataStore.set(key, values);
-                        resolve();
-                    } else {
-                        // Mark the current node as visited
-                        visitedNodes.add(this.nodeID);
-                        // Pass the value to the closest node for storage
-                        return closestNode.store(key, value, visitedNodes, maxHops - 1);
-                    }
-                })
-                .then(() => {
-                    resolve();
-                })
-                .catch(reject);
+            this.dataStore.set(key, values);
+            resolve();
         });
     }
 
@@ -187,87 +208,7 @@ export class LocalDHTNode implements DHTNode {
         });
     }
 
-    private _findValue(key: number, network: DHTNetwork, visitedNodes: Set<NodeID> = new Set(), maxHops: number = 5): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            if (this.dataStore.has(key)) {
-                return resolve(this.dataStore.get(key)!);
-            }
-
-            if (maxHops <= 0) {
-                resolve([]);
-                return;
-            }
-
-            // Mark the current node as visited
-            visitedNodes.add(this.nodeID);
-            this._findNodeByKey(key, network)
-                .then((closestNode) => {
-                    if (closestNode && closestNode.nodeID !== this.nodeID && !visitedNodes.has(closestNode.nodeID)) {
-                        return closestNode.findValue(key, visitedNodes, maxHops--).then((value) => ({ value, closestNode }));
-                    } else {
-                        resolve([]);
-                    }
-                })
-                .then((value) => {
-                    if (value.value) {
-                        // Cache the value locally if this node is close enough to the key
-                        const distanceToClosestNode = this.xorDistance(key, value.closestNode.nodeID);
-                        const distanceToThisNode = this.xorDistance(key, this.nodeID);
-
-                        if (distanceToThisNode < distanceToClosestNode) {
-                            this.dataStore.set(key, value.value);
-                        }
-                    }
-                    resolve(value.value);
-                })
-                .catch(reject);
-        });
-    }
-
-    private _ping(network: DHTNetwork): Promise<void> {
-        return new Promise((resolve) => {
-            for (const bucket of this.buckets.values()) {
-                for (const nodeId of bucket) {
-                    const node = network.findNodeById(nodeId);
-                    if (!node) {
-                        this._handleFailure(nodeId, network);
-                    }
-                }
-            }
-            resolve();
-        });
-    }
-
-    private _handleFailure(nodeId: NodeID, network: DHTNetwork): Promise<void> {
-        return new Promise((resolve) => {
-            // Find keys that were stored on the failed node
-            const keysToRedistribute: Array<[number, string[]]> = [];
-            for (const [key, value] of this.dataStore) {
-                keysToRedistribute.push([key, value]);
-            }
-
-            Promise.all(
-                keysToRedistribute.map(([key, value]) =>
-                    network.findNodesByKey(key).then((closestNodes) => {
-                        // If the failed node was among the k closest nodes, redistribute the key
-                        if (closestNodes.find((node) => node.nodeID === nodeId)) {
-                            return this._store(key, value, network);
-                        }
-                    }),
-                ),
-            )
-                .then(() => {
-                    resolve();
-                })
-                .catch((error) => {
-                    console.error('Error redistributing keys:', error);
-                    resolve();
-                });
-            resolve();
-        });
-    }
-
-    private _findNodeByKey(key: number, network: DHTNetwork): Promise<DHTNode> {
+    private _findNodeByKey(key: number): Promise<DHTNode> {
         return new Promise((resolve, reject) => {
             let closestNodeId: NodeID | null = null;
             let closestDistance = Infinity;
@@ -281,7 +222,7 @@ export class LocalDHTNode implements DHTNode {
                     }
                 }
             });
-            network
+            this.network
                 .findNodeById(closestNodeId)
                 .then((node) => {
                     resolve(node);

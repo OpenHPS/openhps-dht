@@ -64,7 +64,6 @@ describe('DHTRDFService', () => {
         let service3: DHTService;
 
         before((done) => {
-            DHTMemoryNetwork.reset();
             service1 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service2 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service3 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
@@ -105,7 +104,6 @@ describe('DHTRDFService', () => {
         let service3: DHTService;
 
         before((done) => {
-            DHTMemoryNetwork.reset();
             service1 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service2 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
             service3 = new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));

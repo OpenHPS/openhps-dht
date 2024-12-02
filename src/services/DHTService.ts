@@ -2,7 +2,6 @@ import { LengthUnit, Service } from '@openhps/core';
 import { DHTNode, NodeID } from '../models/DHTNode';
 import { DHTNetwork } from './DHTNetwork';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
-import { LocalDHTNode } from '../models/LocalDHTNode';
 
 const GRID_SIZE = 10; // 10 km
 

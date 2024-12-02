@@ -2,8 +2,15 @@ import { DHTNode, LocalDHTNode, NodeID, RemoteDHTNode } from '../models';
 import { DHTNetwork } from './DHTNetwork';
 
 export class DHTMemoryNetwork extends DHTNetwork {
-    public static readonly NODES: Map<NodeID, DHTNode> = new Map();
+    public readonly nodes: Map<NodeID, DHTNode> = new Map();
     protected nodeHandler: RemoteDHTNode;
+
+    constructor(collection: string = "default", nodes?: Map<NodeID, DHTNode>) {
+        super(collection);
+        if (nodes) {
+            this.nodes = nodes;
+        }
+    }
 
     createLocalNode(nodeID: number): Promise<LocalDHTNode> {
         return new Promise((resolve) => {
@@ -13,42 +20,39 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     addNode(node: DHTNode): Promise<void> {
         return new Promise((resolve, reject) => {
-            DHTMemoryNetwork.NODES.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
+            // Add node locally
+            this.nodes.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
 
             Promise.all(
-                Array.from(DHTMemoryNetwork.NODES.values()).map((otherNode) => {
+                Array.from(this.nodes.values()).map((otherNode) => {
                     if (otherNode.nodeID !== node.nodeID) {
                         return Promise.all([otherNode.addNode(node.nodeID), node.addNode(otherNode.nodeID)]);
                     }
                     return Promise.resolve();
                 }),
             )
-                .then(() => {
-                    resolve();
-                })
-                .catch((error) => {
-                    reject(error);
-                });
+                .then(() => resolve())
+                .catch(reject);
         });
     }
 
     removeNode(node: DHTNode): Promise<void> {
         return new Promise((resolve, reject) => {
-            DHTMemoryNetwork.NODES.delete(node.nodeID);
+            // Delete node locally
+            this.nodes.delete(node.nodeID);
+
             Promise.all(
-                Array.from(DHTMemoryNetwork.NODES.values()).map((otherNode) => otherNode.removeNode(node.nodeID)),
+                Array.from(this.nodes.values()).map((otherNode) => otherNode.removeNode(node.nodeID)),
             )
-                .then(() => {
-                    resolve();
-                })
-                .catch(reject);
+            .then(() => resolve())
+            .catch(reject);
         });
     }
 
     findNodeById(nodeID: NodeID): Promise<DHTNode> {
         return new Promise((resolve, reject) => {
-            if (DHTMemoryNetwork.NODES.has(nodeID)) {
-                resolve(DHTMemoryNetwork.NODES.get(nodeID));
+            if (this.nodes.has(nodeID)) {
+                resolve(this.nodes.get(nodeID));
             } else {
                 reject(new Error('Node not found'));
             }
@@ -58,7 +62,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     findNodesByKey(key: number, count: number = 5): Promise<DHTNode[]> {
         return new Promise((resolve, reject) => {
             Promise.all(
-                Array.from(DHTMemoryNetwork.NODES.values())
+                Array.from(this.nodes.values())
                     .map((node) => node.nodeID)
                     .sort((a, b) => this.xorDistance(a, key) - this.xorDistance(b, key))
                     .slice(0, count)
@@ -129,7 +133,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     ping(): Promise<void> {
         return new Promise((resolve, reject) => {
             Promise.all(
-                Array.from(DHTMemoryNetwork.NODES.values()).map((node) => {
+                Array.from(this.nodes.values()).map((node) => {
                     return node.ping();
                 }),
             )
@@ -138,9 +142,5 @@ export class DHTMemoryNetwork extends DHTNetwork {
                 })
                 .catch(reject);
         });
-    }
-
-    static reset(): void {
-        DHTMemoryNetwork.NODES.clear();
     }
 }
