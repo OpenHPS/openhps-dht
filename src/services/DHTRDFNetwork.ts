@@ -1,38 +1,123 @@
 import '@openhps/rdf';
-import { DHTNode, LocalDHTNode, LocalRDFNode, NodeID  } from '../models';
-import { IriString, RDFSerializer } from '@openhps/rdf';
-import { Collection } from '@openhps/solid';
+import { DHTNode, LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode, NodeID  } from '../models';
+import { foaf, IriString, RDFSerializer } from '@openhps/rdf';
+import { Collection, Container, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/RemoteRDFNode';
+import { Model } from '@openhps/core';
+import { DHTService } from './DHTService';
 
 /**
  * Distributed hash table RDF network
  */
 export class DHTRDFNetwork extends DHTMemoryNetwork {
-    private _defaultURI: IriString;
     protected nodeHandler: RemoteRDFNode;
-    protected collection: IriString;
-    // Collection object
-    private _collection: Collection;
+    protected solidService: SolidClientService;
+    protected collectionInstance: Collection;
+    protected podUrl: IriString;
 
-    constructor(collectionURI: IriString, uri?: IriString) {
-        super(collectionURI);
-        this._defaultURI = uri || collectionURI;
-        this._collection = new Collection(collectionURI);
+    constructor(collectionName?: string, collectionUri?: IriString) {
+        super(collectionName);
+        this.collectionInstance = new Collection(collectionUri);
+    }
+
+    set service(service: DHTService) {
+        super.service = service;
+        service.dependencies.push(SolidClientService);
+    }
+
+    /**
+     * Initialize the network
+     * @param nodeID Node identifier to use as the local node
+     * @param model Model to use
+     * @returns {Promise<void>} Promise when the network is initialized
+     */
+    initialize(nodeID: number, model?: Model): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Get the Solid service of the node
+            if (model) {
+                this.solidService = model.findService(SolidClientService);
+            } else {
+                reject(new Error("No positioning model found"));
+            }
+
+            if (!this.solidService) {
+                reject(new Error("No Solid service found in the model"));
+            }
+
+            this.solidService.once('ready', () => {
+                if (!this.solidService.session) {
+                    reject(new Error("No Solid session found in the service"));
+                }
+    
+                this.solidService.getPodUrl(this.solidService.session).then((podUrl) => {
+                    this.podUrl = podUrl;
+                }).then(() => {
+                    return super.initialize(nodeID, model);
+                }).then(() => {
+                    resolve();
+                }).catch(reject);
+            });
+        });
     }
 
     createLocalNode(nodeID: number): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            fetch(this._defaultURI).then((response) => {
+            const nodesContainer: IriString = `${this.podUrl}/nodes`;
+            const url: IriString = `${nodesContainer}/${this.collection}`;
+            const nodeUrl: IriString = `${url}/node.ttl#`;
+            const actionsUrl: IriString = `${url}/actions`;
+
+            this.solidService.createContainer(this.solidService.session, nodesContainer).then(() => {
+                return this.solidService.createContainer(this.solidService.session, `${url}`);
+            }).then(() => {
+                return this.solidService.createContainer(this.solidService.session, `${actionsUrl}`);
+            }).then(() => {
+                // Ensure that the acl rights for "url" are read only
+                // Ensure that the acl rights for "actionsUrl" are read and append
+                return Promise.all([
+                    this.solidService.setAccess(url, {
+                        read: true,
+                        write: false,
+                        append: false,
+                        controlRead: false,
+                        controlWrite: false,
+                    }, foaf.Agent, this.solidService.session),
+                    this.solidService.setAccess(actionsUrl, {
+                        read: true,
+                        write: false,
+                        append: true,
+                        controlRead: false,
+                        controlWrite: false,
+                    }, foaf.Agent, this.solidService.session)
+                ]);
+            }).then(() => {
+                return fetch(nodeUrl);
+            }).then((response) => {
                 return response.text();
             }).then((response) => {
-                return RDFSerializer.deserializeFromString(this._defaultURI, response);
-            }).then((node) => {
+                return RDFSerializer.deserializeFromString(nodeUrl, response);
+            }).then((node: LocalRDFNode) => {
                 resolve(node as LocalRDFNode);
             }).catch(() => {
                 // Create a new local node
                 const node = new LocalRDFNode(nodeID, this);
-                resolve(node);
+                node.uri = nodeUrl;
+                node.actions = [
+                    new LDHTPingAction()
+                        .setTarget(actionsUrl as IriString),
+                    new LDHTAddNodeAction()
+                        .setTarget(actionsUrl as IriString),
+                    new LDHTRemoveNodeAction()
+                        .setTarget(actionsUrl as IriString),
+                    new LDHTStoreValueAction()
+                        .setTarget(actionsUrl as IriString),
+                ];
+                // Store node
+                this.solidService.saveDatasetStore(this.solidService.session, nodeUrl, RDFSerializer.serializeToStore(node))
+                    .then(() => {
+                        resolve(node);
+                    }).catch(reject);
             });
         });
     }
@@ -42,7 +127,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
      * @param {DHTNode} node Node to add
      * @returns {Promise<void>} Promise when the node is added
      */
-    addNode(node: DHTNode): Promise<void> {
+    addNode(node: RemoteRDFNode): Promise<void> {
         return new Promise((resolve, reject) => {
             // Add the node in memory and broadcast to nearby other nodes
             this.nodes.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
@@ -51,8 +136,9 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
         });
     }
 
-    removeNode(node: DHTNode): Promise<void> {
+    removeNode(node: RemoteRDFNode): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Delete node locally
             this.nodes.delete(node.nodeID);
 
             resolve();
@@ -87,6 +173,14 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
     ping(): Promise<void> {
         return new Promise((resolve, reject) => {
             
+        });
+    }
+
+    remoteStore(uri: IriString, key: number, values: string[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.solidService.getDatasetStore(this.solidService.session, uri).then((store) => {
+
+            }).catch(reject);
         });
     }
 }

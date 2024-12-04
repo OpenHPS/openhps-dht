@@ -1,7 +1,8 @@
-import { Collection, Container } from "@openhps/solid";
 import { DHTNode } from "./DHTNode";
+import { IriString } from "@openhps/rdf";
+import { LDHTAction } from "./LDHTAction";
 
 export interface RDFNode extends DHTNode {
-    actionContainer: Container;
-    treeCollection: Collection;
+    uri: IriString;
+    actions: LDHTAction[];
 }

@@ -1,38 +1,33 @@
 import 'mocha';
 import { expect } from 'chai';
-import { DHTNetwork, DHTService } from '../../src';
+import { DHTService } from '../../src';
 import { DHTMemoryNetwork } from '../../src/services/DHTMemoryNetwork';
 
 describe('DHTService', () => {
-    describe('constructor()', () => {
-        let service: DHTService;
-
-        before((done) => {
-            service = new DHTService();
-            service.emitAsync('build').then(() => {
-                done();
-            }).catch(done);
+    let services: DHTService[] = [];
+    before((done) => {
+        const network = new DHTMemoryNetwork();
+        services = [...Array.from({ length: 3 })].map(() => {
+            return new DHTService(new DHTMemoryNetwork(undefined, network.nodes));
         });
+        Promise.all(services.map((service) => {
+            return service.emitAsync('build');
+        })).then(() => {
+            done();
+        }).catch(done);
+    });
 
+    describe('constructor()', () => {
         it('should generate a random node id', () => {
-            const node = service.node;
+            const node = services[0].node;
             expect(node.nodeID).to.be.a('number');
         });
     });
 
     describe('hash()', () => {
-        let service: DHTService;
-
-        before((done) => {
-            service = new DHTService();
-            service.emitAsync('build').then(() => {
-                done();
-            }).catch(done);
-        });
-
         it('should hash coordinates to a single key when given no accuracy', () => {
-            const key1 = service.hash(50.82057996247597, 4.39222274282769);
-            const key2 = service.hash(51.14415786460933, 3.5908935381010614);
+            const key1 = services[0].hash(50.82057996247597, 4.39222274282769);
+            const key2 = services[0].hash(51.14415786460933, 3.5908935381010614);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
             expect(key1[0]).to.eql(17532);
@@ -40,8 +35,8 @@ describe('DHTService', () => {
         });
 
         it('should hash coordinates to a single key when given an accurate accuracy', () => {
-            const key1 = service.hash(50.82057996247597, 4.39222274282769, 5);
-            const key2 = service.hash(51.14415786460933, 3.5908935381010614, 5);
+            const key1 = services[0].hash(50.82057996247597, 4.39222274282769, 5);
+            const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 5);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
             expect(key1[0]).to.eql(17532);
@@ -49,8 +44,8 @@ describe('DHTService', () => {
         });
 
         it('should hash coordinates to multiple keys when given an inaccurate accuracy', () => {
-            const key1 = service.hash(50.82057996247597, 4.39222274282769, 10001);
-            const key2 = service.hash(51.14415786460933, 3.5908935381010614, 20001);
+            const key1 = services[0].hash(50.82057996247597, 4.39222274282769, 10001);
+            const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 20001);
             expect(key1.length).to.eql(2);
             expect(key2.length).to.eql(3);
             expect(key1[0]).to.eql(17532);
@@ -59,42 +54,25 @@ describe('DHTService', () => {
     }); 
 
     describe('addPositioningSystem()', () => {
-        let service1: DHTService;
-        let service2: DHTService;
-        let service3: DHTService;
-        
-        before((done) => {
-            service1 = new DHTService();
-            service2 = new DHTService(new DHTMemoryNetwork(undefined, (service1.network as DHTMemoryNetwork).nodes));
-            service3 = new DHTService(new DHTMemoryNetwork(undefined, (service1.network as DHTMemoryNetwork).nodes));
 
+        before((done) => {
             Promise.all([
-                service1.emitAsync('build'),
-                service2.emitAsync('build'),
-                service3.emitAsync('build')
+                services[0].addNode(services[1].node),
+                services[0].addNode(services[2].node)
             ]).then(() => {
-                return Promise.all([
-                    service1.addNode(service2.node),
-                    service1.addNode(service3.node)
-                ]);
-            }).then(() => {
                 done();
             }).catch(done);
         });
 
         it('should add a positioning system to the network', (done) => {
-            service1.addPositioningSystem('GPS', 50.82057996247597, 4.39222274282769, 5).then(() => {
-                return Promise.all([
-                    service1.findPositioningSystems(50.82057996247597, 4.39222274282769, 5),
-                    service2.findPositioningSystems(50.82057996247597, 4.39222274282769, 5),
-                    service3.findPositioningSystems(50.82057996247597, 4.39222274282769, 5)
-                ]);
-            }).then(([systems1, systems2, systems3]) => {
-                expect(systems2).to.have.lengthOf(1);
-                expect(systems2[0]).to.eql('GPS');
-                return service3.addPositioningSystem('Test', 51.14415786460933, 3.5908935381010614, 1001);
+            services[0].addPositioningSystem('GPS', 50.82057996247597, 4.39222274282769, 5).then(() => {
+                return services[1].findPositioningSystems(50.82057996247597, 4.39222274282769, 5);
+            }).then((systems) => {
+                expect(systems).to.have.lengthOf(1);
+                expect(systems[0]).to.eql('GPS');
+                return services[2].addPositioningSystem('Test', 51.14415786460933, 3.5908935381010614, 1001);
             }).then(() => {
-                return service2.findPositioningSystems(51.14415786460933, 3.5908935381010614, 100);
+                return services[1].findPositioningSystems(51.14415786460933, 3.5908935381010614, 100);
             }).then((systems) => {
                 expect(systems).to.have.lengthOf(1);
                 done();
@@ -103,28 +81,14 @@ describe('DHTService', () => {
     });
 
     describe('findPositioningSystems()', () => {
-        let service1: DHTService;
-        let service2: DHTService;
-        let service3: DHTService;
-
         before((done) => {
-            service1 = new DHTService();
-            service2 = new DHTService(new DHTMemoryNetwork(undefined, (service1.network as DHTMemoryNetwork).nodes));
-            service3 = new DHTService(new DHTMemoryNetwork(undefined, (service1.network as DHTMemoryNetwork).nodes));
-
             Promise.all([
-                service1.emitAsync('build'),
-                service2.emitAsync('build'),
-                service3.emitAsync('build')
+                services[0].addNode(services[1].node),
+                services[0].addNode(services[2].node)
             ]).then(() => {
                 return Promise.all([
-                    service1.addNode(service2.node),
-                    service1.addNode(service3.node)
-                ]);
-            }).then(() => {
-                return Promise.all([
-                    service1.addPositioningSystem('GPS', 50.82057996247597, 4.39222274282769, 5),
-                    service3.addPositioningSystem('Test', 51.14415786460933, 3.5908935381010614, 1001)
+                    services[0].addPositioningSystem('GPS2', 50.82057996247597, 4.39222274282769, 5),
+                    services[2].addPositioningSystem('Test2', 51.14415786460933, 3.5908935381010614, 1001)
                 ]);
             }).then(() => {
                 done();
@@ -132,23 +96,25 @@ describe('DHTService', () => {
         });
 
         it('should find positioning systems in the node where added', (done) => {
-            service1.findPositioningSystems(50.82057996247597, 4.39222274282769, 5).then((systems) => {
-                expect(systems).to.have.lengthOf(1);
-                expect(systems[0]).to.eql('GPS');
-                return service3.findPositioningSystems(50.82057996247597, 4.39222274282769, 2000000);
-            }).then((systems) => {
+            services[0].findPositioningSystems(50.82057996247597, 4.39222274282769, 5).then((systems) => {
                 expect(systems).to.have.lengthOf(2);
+                expect(systems[0]).to.eql('GPS');
+                expect(systems[1]).to.eql('GPS2');
+                return services[2].findPositioningSystems(50.82057996247597, 4.39222274282769, 2000000);
+            }).then((systems) => {
+                expect(systems).to.have.lengthOf(4);
                 done();
             }).catch(done);
         });
 
         it('should find positioning systems in the network', (done) => {
-            service2.findPositioningSystems(50.82057996247597, 4.39222274282769, 5).then((systems) => {
-                expect(systems).to.have.lengthOf(1);
-                expect(systems[0]).to.eql('GPS');
-                return service2.findPositioningSystems(50.82057996247597, 4.39222274282769, 2000000);
-            }).then((systems) => {
+            services[1].findPositioningSystems(50.82057996247597, 4.39222274282769, 5).then((systems) => {
                 expect(systems).to.have.lengthOf(2);
+                expect(systems[0]).to.eql('GPS');
+                expect(systems[1]).to.eql('GPS2');
+                return services[1].findPositioningSystems(50.82057996247597, 4.39222274282769, 2000000);
+            }).then((systems) => {
+                expect(systems).to.have.lengthOf(4);
                 done();
             }).catch(done);
         });

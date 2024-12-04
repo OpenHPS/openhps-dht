@@ -1,15 +1,18 @@
+import { Model } from '@openhps/core';
 import { DHTNode, LocalDHTNode, NodeID } from '../models';
+import { DHTService } from './DHTService';
 
 /**
  * Distributed Hash Table Network
  */
 export abstract class DHTNetwork {
     private _node: LocalDHTNode;
+    private _service: DHTService;
     /**
      * Collection name identifying the network
      */
     protected collection: string;
-
+    
     /**
      * Get the local node that is part of the network
      */
@@ -30,6 +33,20 @@ export abstract class DHTNetwork {
         return this.node.nodeID;
     }
 
+    /**
+     * Get the service
+     */
+    get service(): DHTService {
+        return this._service;
+    }
+
+    /**
+     * Set the service
+     */
+    set service(service: DHTService) {
+        this._service = service;
+    }
+
     constructor(collection: string = "default") {
         this.collection = collection
     }
@@ -37,9 +54,10 @@ export abstract class DHTNetwork {
     /**
      * Initialize the network
      * @param nodeID Node identifier to use as the local node
+     * @param model Model to use
      * @returns {Promise<void>} Promise when the network is initialized
      */
-    initialize(nodeID: number): Promise<void> {
+    initialize(nodeID: number, model?: Model): Promise<void> {
         return new Promise((resolve, reject) => {
             this.createLocalNode(nodeID).then((node) => {
                 this.node = node;

@@ -30,6 +30,18 @@ export abstract class LDHTAction extends SerializableThing {
         }
     })
     agent: IriString;
+
+    @SerializableMember({
+        rdf: {
+            predicate: schema.target
+        }
+    })
+    target?: IriString;
+
+    setTarget(target: IriString): this {
+        this.target = target;
+        return this;
+    }
 }
 
 export class ActionStatus {

@@ -20,7 +20,6 @@
   "types": "./dist/types/index.d.ts",
   "unpkg": "./dist/web/openhps-dht.min.js",
   "jsdelivr": "./dist/web/openhps-dht.min.js",
-  "lsd:module": true,
   "module": "./dist/esm5/index.js",
   "es2015": "./dist/esm/index.js",
   "files": [
@@ -69,7 +68,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
-    "@openhps/core": "0.7.11",
+    "@openhps/core": "0.7.12",
     "@openhps/rdf": "0.4.96",
     "@openhps/solid": "0.2.10",
     "@types/chai": "^4.3.19",
@@ -127,12 +126,5 @@
   },
   "engines": {
     "node": ">=12.0.0"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint",
-      "pre-push": "npm run test",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
   }
 }

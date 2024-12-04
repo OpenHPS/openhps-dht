@@ -1,16 +1,19 @@
-import { Serializable, SerializableMapMember, SerializableMember, SerializableObject } from "@openhps/core";
+import { Serializable, SerializableArrayMember, SerializableMapMember, SerializableMember, SerializableObject } from "@openhps/core";
 import { LocalDHTNode } from "./LocalDHTNode";
 import { ldht } from '../terms';
-import { RDFBuilder, IriString, tree, DataFactory, Thing } from '@openhps/rdf';
+import { RDFBuilder, IriString, tree, DataFactory, Thing, schema } from '@openhps/rdf';
 import { NodeID } from "./DHTNode";
-import { SolidSession } from "@openhps/solid";
+import { RDFNode } from "./RDFNode";
+import { Container } from "@openhps/solid";
+import { DHTRDFNetwork } from "../services";
+import { LDHTAction } from "./LDHTAction";
 
 @SerializableObject({
     rdf: {
         type: ldht.Node
     }
 })
-export class LocalRDFNode extends LocalDHTNode {
+export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     @SerializableMember({
         rdf: {
             predicate: ldht.nodeID
@@ -55,17 +58,26 @@ export class LocalRDFNode extends LocalDHTNode {
     dataStore?: Map<number, string[]>;
     @SerializableMapMember(Number, Array)
     buckets: Map<number, NodeID[]>;
-
-    // Session of the local node
-    session: SolidSession;
+    @SerializableMember({
+        rdf: {
+            identifier: true
+        }
+    })
+    uri: IriString;
+    @SerializableArrayMember(LDHTAction, {
+        rdf: {
+            predicate: schema.potentialAction,
+        }
+    })
+    actions: LDHTAction[];
+    network: DHTRDFNetwork;
 
     protected storeLocal(key: number, value: string | string[]): Promise<void> {
         return new Promise((resolve, reject) => {
             super.storeLocal(key, value).then(() => {
                 // Store in solid storage
-
-                resolve();
-            }).catch(reject);
+                return this.network.remoteStore(this.uri, key, Array.isArray(value) ? value : [value]);
+            }).then(resolve).catch(reject);
         });
     }
 

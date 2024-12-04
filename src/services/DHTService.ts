@@ -14,13 +14,14 @@ export class DHTService extends Service {
     constructor(network: DHTNetwork = new DHTMemoryNetwork()) {
         super();
         this.network = network;
-
+        this.network.service = this;
+        
         // Generate a random latitude and longitude
         this.once('build', () => {
             const latitude = Math.random() * 180 - 90;
             const longitude = Math.random() * 360 - 180;
             const nodeID = this.hash(latitude, longitude)[0];
-            return network.initialize(nodeID);
+            return network.initialize(nodeID, this.model);
         });
     }
 
