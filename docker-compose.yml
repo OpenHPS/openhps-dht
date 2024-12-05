@@ -2,6 +2,11 @@ networks:
   dht-network:
     driver: bridge
   
+volumes:
+  test-data1:
+  test-data2:
+  test-data3:
+
 x-solid-server: &solid-server
   build:
     context: docker
@@ -19,6 +24,8 @@ services:
       - BASE_URL=http://localhost:3000
     ports:
       - 3000:3000
+    volumes:
+      - test-data1:/data
   test-server2:
     <<: *solid-server
     environment:
@@ -28,6 +35,8 @@ services:
       - BASE_URL=http://localhost:3001
     ports:
       - 3001:3000
+    volumes:
+      - test-data2:/data
   test-server3:
     <<: *solid-server
     environment:
@@ -37,3 +46,5 @@ services:
       - BASE_URL=http://localhost:3002
     ports:
       - 3002:3000
+    volumes:
+      - test-data3:/data

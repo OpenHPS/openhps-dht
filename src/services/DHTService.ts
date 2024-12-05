@@ -21,7 +21,7 @@ export class DHTService extends Service {
             const latitude = Math.random() * 180 - 90;
             const longitude = Math.random() * 360 - 180;
             const nodeID = this.hash(latitude, longitude)[0];
-            return network.initialize(nodeID, this.model);
+            return this.network.initialize(nodeID, this.model);
         });
     }
 

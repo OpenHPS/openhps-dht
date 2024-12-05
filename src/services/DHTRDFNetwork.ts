@@ -1,7 +1,7 @@
 import '@openhps/rdf';
 import { DHTNode, LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode, NodeID  } from '../models';
 import { foaf, IriString, RDFSerializer } from '@openhps/rdf';
-import { Collection, Container, SolidClientService } from '@openhps/solid';
+import { Collection, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/RemoteRDFNode';
 import { Model } from '@openhps/core';
@@ -26,6 +26,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
         service.dependencies.push(SolidClientService);
     }
 
+    get service(): DHTService {
+        return super.service;
+    }
+
     /**
      * Initialize the network
      * @param nodeID Node identifier to use as the local node
@@ -43,6 +47,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
             if (!this.solidService) {
                 reject(new Error("No Solid service found in the model"));
+            }
+
+            if (!this.service) {
+                reject(new Error("Network was created without a service"));
             }
 
             this.solidService.once('ready', () => {
@@ -68,13 +76,17 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
             const nodeUrl: IriString = `${url}/node.ttl#`;
             const actionsUrl: IriString = `${url}/actions`;
 
+            this.service.logger('debug', `Creating 'nodes' container at ${nodesContainer}`);
             this.solidService.createContainer(this.solidService.session, nodesContainer).then(() => {
+                this.service.logger('debug', `Creating 'collection' container at ${url}`);
                 return this.solidService.createContainer(this.solidService.session, `${url}`);
             }).then(() => {
+                this.service.logger('debug', `Creating 'actions' container at ${actionsUrl}`);
                 return this.solidService.createContainer(this.solidService.session, `${actionsUrl}`);
             }).then(() => {
                 // Ensure that the acl rights for "url" are read only
                 // Ensure that the acl rights for "actionsUrl" are read and append
+                this.service.logger('debug', `Setting access rights for ${url}`);
                 return Promise.all([
                     this.solidService.setAccess(url, {
                         read: true,
@@ -92,6 +104,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     }, foaf.Agent, this.solidService.session)
                 ]);
             }).then(() => {
+                this.service.logger('debug', `Fetching node at ${nodeUrl}`);
                 return fetch(nodeUrl);
             }).then((response) => {
                 return response.text();
@@ -99,8 +112,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                 return RDFSerializer.deserializeFromString(nodeUrl, response);
             }).then((node: LocalRDFNode) => {
                 resolve(node as LocalRDFNode);
-            }).catch(() => {
+            }).catch((err) => {
+                console.error(err);
                 // Create a new local node
+                this.service.logger('debug', `Creating new local node at ${nodeUrl}`);
                 const node = new LocalRDFNode(nodeID, this);
                 node.uri = nodeUrl;
                 node.actions = [

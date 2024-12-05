@@ -26,12 +26,13 @@ describe('DHTRDFService', () => {
                 });
             });
             services = solidServices.map(() => {
-                return new DHTService(new DHTRDFNetwork('http://poso.purl.org/'));
+                return new DHTService(new DHTRDFNetwork('poso', 'http://poso.purl.org/'));
             });
             return Promise.all(solidServices.map((service, i) => {
                 return ModelBuilder.create()
                     .addService(service)        // Solid service
                     .addService(services[i])    // DHT service
+                    .withLogger(console.log)
                     .build();
             }));
         }).then((m) => {

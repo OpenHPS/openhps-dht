@@ -61,16 +61,16 @@
     "node-fetch": "^3.3.2"
   },
   "peerDependencies": {
-    "@openhps/core": ">=0.4.27",
+    "@openhps/core": ">=0.7.13",
     "@openhps/rdf": ">=0.4.89",
     "reflect-metadata": ">=0.1.13"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
-    "@openhps/core": "0.7.12",
+    "@openhps/core": "0.7.13",
     "@openhps/rdf": "0.4.96",
-    "@openhps/solid": "0.2.10",
+    "@openhps/solid": "0.2.13",
     "@types/chai": "^4.3.19",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.5",

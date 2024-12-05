@@ -1,9 +1,11 @@
 #!/bin/bash
 
+echo "Preparing test environment"
+
 # Get the user email and user password from env
-USER_EMAIL=${USER_EMAIL:-""}
-USER_PASSWORD=${USER_PASSWORD:-""}
-USER_POD=${USER_POD:-"pod1"}
+USER_EMAIL=${USER_EMAIL:-"test1@test.com"}
+USER_PASSWORD=${USER_PASSWORD:-"test123"}
+USER_POD=${USER_POD:-"test1"}
 
 BASE_URL=${BASE_URL:-"http://localhost:3000"}
 
