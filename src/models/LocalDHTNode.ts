@@ -33,7 +33,12 @@ export class LocalDHTNode implements DHTNode {
         return Math.abs(a ^ b);
     }
 
-    store(key: number, value: string | string[], visitedNodes: Set<NodeID> = new Set(), maxHops: number = 0): Promise<void> {
+    store(
+        key: number,
+        value: string | string[],
+        visitedNodes: Set<NodeID> = new Set(),
+        maxHops: number = 0,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             if (maxHops <= 0) {
                 this.storeLocal(key, value).then(resolve).catch(reject);
@@ -52,7 +57,8 @@ export class LocalDHTNode implements DHTNode {
                         return closestNode.store(key, value, visitedNodes, maxHops - 1);
                     }
                 })
-                .then(resolve).catch(reject);
+                .then(resolve)
+                .catch(reject);
         });
     }
 
@@ -72,7 +78,9 @@ export class LocalDHTNode implements DHTNode {
             this._findNodeByKey(key)
                 .then((closestNode) => {
                     if (closestNode && closestNode.nodeID !== this.nodeID && !visitedNodes.has(closestNode.nodeID)) {
-                        return closestNode.findValue(key, visitedNodes, maxHops--).then((value) => ({ value, closestNode }));
+                        return closestNode
+                            .findValue(key, visitedNodes, maxHops--)
+                            .then((value) => ({ value, closestNode }));
                     } else {
                         resolve([]);
                     }

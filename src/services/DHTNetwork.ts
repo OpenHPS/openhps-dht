@@ -12,9 +12,10 @@ export abstract class DHTNetwork {
      * Collection name identifying the network
      */
     protected collection: string;
-    
+
     /**
      * Get the local node that is part of the network
+     * @returns {LocalDHTNode} Local node
      */
     get node(): LocalDHTNode {
         return this._node;
@@ -28,6 +29,7 @@ export abstract class DHTNetwork {
 
     /**
      * Get the node identifier
+     * @returns {NodeID} Node identifier
      */
     get nodeID(): NodeID {
         return this.node.nodeID;
@@ -35,6 +37,7 @@ export abstract class DHTNetwork {
 
     /**
      * Get the service
+     * @returns {DHTService} Service
      */
     get service(): DHTService {
         return this._service;
@@ -47,8 +50,8 @@ export abstract class DHTNetwork {
         this._service = service;
     }
 
-    constructor(collection: string = "default") {
-        this.collection = collection
+    constructor(collection: string = 'default') {
+        this.collection = collection;
     }
 
     /**
@@ -59,12 +62,15 @@ export abstract class DHTNetwork {
      */
     initialize(nodeID: number, model?: Model): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.createLocalNode(nodeID).then((node) => {
-                this.node = node;
-                return this.addNode(this.node);
-            }).then(() => {
-                resolve();
-            }).catch(reject);
+            this.createLocalNode(nodeID)
+                .then((node) => {
+                    this.node = node;
+                    return this.addNode(this.node);
+                })
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 

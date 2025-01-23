@@ -12,11 +12,10 @@
                          owl:imports <https://w3id.org/tree#Ontology> ;
                          <http://purl.org/dc/terms/abstract> ""@en ;
                          <http://purl.org/dc/terms/bibliographicCitation> "Maxim Van de Wynckel, LDHT: A Distributed Linked Data Hash Tree" ;
-                         <http://purl.org/dc/terms/contributor> "Beat Signer"@en ;
                          <http://purl.org/dc/terms/creator> "Maxim Van de Wynckel"@en ;
                          <http://purl.org/dc/terms/description> ""@en ;
                          <http://purl.org/dc/terms/license> <http://purl.org/NET/rdflicense/MIT1.0> ;
-                         <http://purl.org/dc/terms/modified> "2024-09-24T00:00:00"^^xsd:dateTime ;
+                         <http://purl.org/dc/terms/modified> "2025-01-23T00:00:00"^^xsd:dateTime ;
                          <http://purl.org/dc/terms/title> "Linked Data Hash Tree"@en ;
                          <http://purl.org/vocab/vann/preferredNamespacePrefix> "ldth" ;
                          <http://purl.org/vocab/vann/preferredNamespaceUri> "http://purl.org/ldht/"^^xsd:anyURI .

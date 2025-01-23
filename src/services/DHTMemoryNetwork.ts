@@ -5,7 +5,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     public readonly nodes: Map<NodeID, DHTNode> = new Map();
     protected nodeHandler: RemoteDHTNode;
 
-    constructor(collection: string = "default", nodes?: Map<NodeID, DHTNode>) {
+    constructor(collection: string = 'default', nodes?: Map<NodeID, DHTNode>) {
         super(collection);
         if (nodes) {
             this.nodes = nodes;
@@ -41,11 +41,9 @@ export class DHTMemoryNetwork extends DHTNetwork {
             // Delete node locally
             this.nodes.delete(node.nodeID);
 
-            Promise.all(
-                Array.from(this.nodes.values()).map((otherNode) => otherNode.removeNode(node.nodeID)),
-            )
-            .then(() => resolve())
-            .catch(reject);
+            Promise.all(Array.from(this.nodes.values()).map((otherNode) => otherNode.removeNode(node.nodeID)))
+                .then(() => resolve())
+                .catch(reject);
         });
     }
 

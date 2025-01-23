@@ -8,20 +8,20 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
     nodeID: number;
 
     get?(target: DHTNode, p: PropertyKey, receiver: any): any {
-        switch(p) {
-            case "nodeID":
+        switch (p) {
+            case 'nodeID':
                 return this.nodeID;
-            case "addNode":
+            case 'addNode':
                 return this.addNode.bind(this);
-            case "removeNode":
+            case 'removeNode':
                 return this.removeNode.bind(this);
-            case "store":
+            case 'store':
                 return this.store.bind(this);
-            case "hasValue":
+            case 'hasValue':
                 return this.hasValue.bind(this);
-            case "findValue":
+            case 'findValue':
                 return this.findValue.bind(this);
-            case "ping":
+            case 'ping':
                 return this.ping.bind(this);
             default:
                 return Reflect.get(target, p, receiver);

@@ -15,7 +15,7 @@ export class DHTService extends Service {
         super();
         this.network = network;
         this.network.service = this;
-        
+
         // Generate a random latitude and longitude
         this.once('build', () => {
             const latitude = Math.random() * 180 - 90;
@@ -39,8 +39,8 @@ export class DHTService extends Service {
 
     /**
      * Store a value in the DHT
-     * @param {number} key Hashed key 
-     * @param {string} value Value to store 
+     * @param {number} key Hashed key
+     * @param {string} value Value to store
      * @returns {Promise<void>} Promise that resolves once the value is stored
      */
     storeValue(key: number, value: string): Promise<void> {

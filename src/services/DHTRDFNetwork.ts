@@ -1,6 +1,8 @@
-import '@openhps/rdf';
-import { DHTNode, LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode, NodeID  } from '../models';
 import { foaf, IriString, RDFSerializer } from '@openhps/rdf';
+import { DHTNode, NodeID } from '../models/DHTNode';
+import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
+import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
+
 import { Collection, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/RemoteRDFNode';
@@ -32,7 +34,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     /**
      * Initialize the network
-     * @param nodeID Node identifier to use as the local node
+     * @param {number} nodeID Node identifier to use as the local node
      * @param model Model to use
      * @returns {Promise<void>} Promise when the network is initialized
      */
@@ -42,98 +44,120 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
             if (model) {
                 this.solidService = model.findService(SolidClientService);
             } else {
-                reject(new Error("No positioning model found"));
+                reject(new Error('No positioning model found'));
             }
 
             if (!this.solidService) {
-                reject(new Error("No Solid service found in the model"));
+                reject(new Error('No Solid service found in the model'));
             }
 
             if (!this.service) {
-                reject(new Error("Network was created without a service"));
+                reject(new Error('Network was created without a service'));
             }
 
             this.solidService.once('ready', () => {
                 if (!this.solidService.session) {
-                    reject(new Error("No Solid session found in the service"));
+                    reject(new Error('No Solid session found in the service'));
                 }
-    
-                this.solidService.getPodUrl(this.solidService.session).then((podUrl) => {
-                    this.podUrl = podUrl;
-                }).then(() => {
-                    return super.initialize(nodeID, model);
-                }).then(() => {
-                    resolve();
-                }).catch(reject);
+
+                this.solidService
+                    .getPodUrl(this.solidService.session)
+                    .then((podUrl) => {
+                        this.podUrl = podUrl;
+                    })
+                    .then(() => {
+                        return super.initialize(nodeID, model);
+                    })
+                    .then(() => {
+                        resolve();
+                    })
+                    .catch(reject);
             });
         });
     }
 
     createLocalNode(nodeID: number): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            const nodesContainer: IriString = `${this.podUrl}/nodes`;
+            const nodesContainer: IriString = this.podUrl.endsWith('/') ? `${this.podUrl}nodes` : `${this.podUrl}/nodes`;
             const url: IriString = `${nodesContainer}/${this.collection}`;
             const nodeUrl: IriString = `${url}/node.ttl#`;
             const actionsUrl: IriString = `${url}/actions`;
 
             this.service.logger('debug', `Creating 'nodes' container at ${nodesContainer}`);
-            this.solidService.createContainer(this.solidService.session, nodesContainer).then(() => {
-                this.service.logger('debug', `Creating 'collection' container at ${url}`);
-                return this.solidService.createContainer(this.solidService.session, `${url}`);
-            }).then(() => {
-                this.service.logger('debug', `Creating 'actions' container at ${actionsUrl}`);
-                return this.solidService.createContainer(this.solidService.session, `${actionsUrl}`);
-            }).then(() => {
-                // Ensure that the acl rights for "url" are read only
-                // Ensure that the acl rights for "actionsUrl" are read and append
-                this.service.logger('debug', `Setting access rights for ${url}`);
-                return Promise.all([
-                    this.solidService.setAccess(url, {
-                        read: true,
-                        write: false,
-                        append: false,
-                        controlRead: false,
-                        controlWrite: false,
-                    }, foaf.Agent, this.solidService.session),
-                    this.solidService.setAccess(actionsUrl, {
-                        read: true,
-                        write: false,
-                        append: true,
-                        controlRead: false,
-                        controlWrite: false,
-                    }, foaf.Agent, this.solidService.session)
-                ]);
-            }).then(() => {
-                this.service.logger('debug', `Fetching node at ${nodeUrl}`);
-                return fetch(nodeUrl);
-            }).then((response) => {
-                return response.text();
-            }).then((response) => {
-                return RDFSerializer.deserializeFromString(nodeUrl, response);
-            }).then((node: LocalRDFNode) => {
-                resolve(node as LocalRDFNode);
-            }).catch((err) => {
-                console.error(err);
-                // Create a new local node
-                this.service.logger('debug', `Creating new local node at ${nodeUrl}`);
-                const node = new LocalRDFNode(nodeID, this);
-                node.uri = nodeUrl;
-                node.actions = [
-                    new LDHTPingAction()
-                        .setTarget(actionsUrl as IriString),
-                    new LDHTAddNodeAction()
-                        .setTarget(actionsUrl as IriString),
-                    new LDHTRemoveNodeAction()
-                        .setTarget(actionsUrl as IriString),
-                    new LDHTStoreValueAction()
-                        .setTarget(actionsUrl as IriString),
-                ];
-                // Store node
-                this.solidService.saveDatasetStore(this.solidService.session, nodeUrl, RDFSerializer.serializeToStore(node))
-                    .then(() => {
-                        resolve(node);
-                    }).catch(reject);
-            });
+            this.solidService
+                .createContainer(this.solidService.session, nodesContainer)
+                .then(() => {
+                    this.service.logger('debug', `Creating 'collection' container at ${url}`);
+                    return this.solidService.createContainer(this.solidService.session, `${url}`);
+                })
+                .then(() => {
+                    this.service.logger('debug', `Creating 'actions' container at ${actionsUrl}`);
+                    return this.solidService.createContainer(this.solidService.session, `${actionsUrl}`);
+                })
+                .then(() => {
+                    // Ensure that the acl rights for "url" are read only
+                    // Ensure that the acl rights for "actionsUrl" are read and append
+                    this.service.logger('debug', `Setting access rights for ${url}`);
+                    return Promise.all([
+                        this.solidService.setAccess(
+                            url,
+                            {
+                                read: true,
+                                write: false,
+                                append: false,
+                                controlRead: false,
+                                controlWrite: false,
+                            },
+                            foaf.Agent,
+                            this.solidService.session,
+                        ),
+                        this.solidService.setAccess(
+                            actionsUrl,
+                            {
+                                read: true,
+                                write: false,
+                                append: true,
+                                controlRead: false,
+                                controlWrite: false,
+                            },
+                            foaf.Agent,
+                            this.solidService.session,
+                        ),
+                    ]);
+                })
+                .then(() => {
+                    this.service.logger('debug', `Fetching node at ${nodeUrl}`);
+                    return fetch(nodeUrl);
+                })
+                .then((response) => {
+                    return response.text();
+                })
+                .then((response) => {
+                    return RDFSerializer.deserializeFromString(nodeUrl, response);
+                })
+                .then((node: LocalRDFNode) => {
+                    resolve(node as LocalRDFNode);
+                })
+                .catch((err) => {
+                    console.error(err);
+                    // Create a new local node
+                    this.service.logger('debug', `Creating new local node at ${nodeUrl}`);
+                    const node = new LocalRDFNode(nodeID, this);
+                    node.uri = nodeUrl;
+                    node.actions = [
+                        new LDHTPingAction().setTarget(actionsUrl as IriString),
+                        new LDHTAddNodeAction().setTarget(actionsUrl as IriString),
+                        new LDHTRemoveNodeAction().setTarget(actionsUrl as IriString),
+                        new LDHTStoreValueAction().setTarget(actionsUrl as IriString),
+                    ];
+                    // Store node
+                    this.solidService
+                        .saveDatasetStore(this.solidService.session, nodeUrl, RDFSerializer.serializeToStore(node))
+                        .then(() => {
+                            resolve(node);
+                        })
+                        .catch(reject);
+                });
         });
     }
 
@@ -170,11 +194,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     findValue(key: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            let foundValue: string[] = [];
+            const foundValue: string[] = [];
             this.findNodesByKey(key)
                 .then((closestNodes) => {
                     if (closestNodes.length > 0) {
-
                     }
                 })
                 .catch(reject);
@@ -187,15 +210,28 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     ping(): Promise<void> {
         return new Promise((resolve, reject) => {
-            
+            // Create a ping action to all registered nodes
+            const pingPromises = Array.from(this.nodes.values()).map((node) => node.ping());
+            Promise.all(pingPromises)
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
+
+            setTimeout(() => {
+                reject(new Error('Ping timeout: Not all nodes responded within 10 seconds'));
+            }, 10000);
         });
     }
 
     remoteStore(uri: IriString, key: number, values: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.solidService.getDatasetStore(this.solidService.session, uri).then((store) => {
+            this.solidService
+                .getDatasetStore(this.solidService.session, uri)
+                .then((store) => {
 
-            }).catch(reject);
+                })
+                .catch(reject);
         });
     }
 }

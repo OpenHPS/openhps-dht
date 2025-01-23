@@ -1,6 +1,6 @@
-import { SerializableMember, SerializableObject } from "@openhps/core";
-import { IriString, SerializableThing, schema } from "@openhps/rdf";
-import { ldht } from "../terms";
+import { SerializableMember, SerializableObject } from '@openhps/core';
+import { IriString, SerializableThing, schema } from '@openhps/rdf';
+import { ldht } from '../../terms';
 
 @SerializableObject({
     rdf: {
@@ -12,29 +12,29 @@ export abstract class LDHTAction extends SerializableThing {
 
     @SerializableMember({
         rdf: {
-            predicate: ldht.timeout
-        }
+            predicate: ldht.timeout,
+        },
     })
     timeout?: number;
 
     @SerializableMember({
         rdf: {
-            predicate: schema.actionStatus
-        }
+            predicate: schema.actionStatus,
+        },
     })
     actionStatus?: IriString;
 
     @SerializableMember({
         rdf: {
-            predicate: schema.agent
-        }
+            predicate: schema.agent,
+        },
     })
     agent: IriString;
 
     @SerializableMember({
         rdf: {
-            predicate: schema.target
-        }
+            predicate: schema.target,
+        },
     })
     target?: IriString;
 
