@@ -3,7 +3,7 @@ import { DHTNode, NodeID } from '../models/DHTNode';
 import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
 import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
 
-import { Collection, SolidClientService } from '@openhps/solid';
+import { Collection, DatasetSubscription, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/ldht/RemoteRDFNode';
 import { Model } from '@openhps/core';
@@ -14,9 +14,10 @@ import { DHTService } from './DHTService';
  */
 export class DHTRDFNetwork extends DHTMemoryNetwork {
     protected nodeHandler: RemoteRDFNode;
-    protected solidService: SolidClientService;
+    public solidService: SolidClientService;
     protected collectionInstance: Collection;
     protected podUrl: IriString;
+    protected subscription: DatasetSubscription;
 
     constructor(collectionName?: string, collectionUri?: IriString) {
         super(collectionName);
@@ -30,6 +31,35 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     get service(): DHTService {
         return super.service;
+    }
+
+    private get nodesContainerUri(): IriString {
+        return this.podUrl.endsWith('/') ? `${this.podUrl}nodes/` : `${this.podUrl}/nodes/`;
+    }
+
+    private get collectionUri(): IriString {
+        const nodesContainer: IriString = this.nodesContainerUri;
+        return `${nodesContainer}${this.collection}/`;
+    }
+
+    private get actionsUri(): IriString {
+        const url: IriString = this.collectionUri;
+        return `${url}actions/`;
+    }
+
+    private get nodeUri(): IriString {
+        const url: IriString = this.collectionUri;
+        return `${url}node.ttl`;
+    }
+
+    private get nodesUri(): IriString {
+        const url: IriString = this.collectionUri;
+        return `${url}nodes.ttl`;
+    }
+
+    private get dataUri(): IriString {
+        const url: IriString = this.collectionUri;
+        return `${url}data.ttl`;
     }
 
     /**
@@ -69,6 +99,14 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                         return super.initialize(nodeID, model);
                     })
                     .then(() => {
+                        // Listen for actions
+                        return this.solidService.getDatasetSubscription(this.solidService.session, this.actionsUri);
+                    }).then((subscription) => {
+                        this.subscription = subscription;
+                        if (!this.subscription) {
+                            throw new Error('Solid Pod does not support Websocket notifications!');
+                        }
+                        this.subscription.addListener('update', console.log);
                         resolve();
                     })
                     .catch(reject);
@@ -78,10 +116,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     createLocalNode(nodeID: number): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            const nodesContainer: IriString = this.podUrl.endsWith('/') ? `${this.podUrl}nodes/` : `${this.podUrl}/nodes/`;
-            const url: IriString = `${nodesContainer}${this.collection}/`;
-            const nodeUrl: IriString = `${url}node.ttl#`;
-            const actionsUrl: IriString = `${url}actions/`;
+            const nodesContainer: IriString = this.nodesContainerUri;
+            const url: IriString = this.collectionUri;
+            const nodeUrl: IriString = this.nodeUri;
+            const actionsUrl: IriString = this.actionsUri;
 
             this.service.logger('debug', `Creating 'nodes' container at ${nodesContainer}`);
             this.solidService
@@ -153,12 +191,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     protected fetchLocalNode(nodeID: number): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            const nodesContainer: IriString = this.podUrl.endsWith('/') ? `${this.podUrl}nodes/` : `${this.podUrl}/nodes/`;
-            const url: IriString = `${nodesContainer}${this.collection}/`;
-            const nodeUrl: IriString = `${url}node.ttl#`;
-            const actionsUrl: IriString = `${url}actions/`;
-            const nodesUri: IriString = `${url}nodes.ttl`;
-            const dataUri: IriString = `${url}data.ttl`;
+            const nodeUrl: IriString = this.nodeUri;
+            const nodesUri: IriString = this.nodesUri;
+            const dataUri: IriString = this.dataUri;
+            const actionsUrl: IriString = this.actionsUri;
             
             let node: LocalRDFNode;
 
@@ -203,7 +239,6 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
             }).then(() => {
                 resolve(node);
             }).catch(err => {
-                console.error("Error creating node", err);
                 reject(err);
             });
         });
@@ -219,6 +254,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
             // Add the node in memory and broadcast to nearby other nodes
             this.nodes.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
             // Save the node to the Solid pod
+            console.log("Adding node", node);
 
             Promise.all(
                 Array.from(this.nodes.values()).map((otherNode) => {
@@ -249,6 +285,12 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
         return super.findNodeById(nodeID);
     }
 
+    /**
+     * Find nodes by key using local cached nodes
+     * @param key 
+     * @param count 
+     * @returns 
+     */
     findNodesByKey(key: number, count?: number): Promise<DHTNode[]> {
         return super.findNodesByKey(key, count);
     }

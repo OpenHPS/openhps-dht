@@ -1,9 +1,8 @@
-import { Action, IriString, RDFSerializer, schema } from '@openhps/rdf';
+import { Action, DataFactory, IriString, RDFSerializer, schema } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RemoteDHTNode } from '../RemoteDHTNode';
 import { RDFNode } from './RDFNode';
 import { SerializableArrayMember, SerializableMember, SerializableObject } from '@openhps/core';
-import { ldht } from '../../terms';
 import { DHTRDFNetwork } from '../../services/DHTRDFNetwork';
 import { LDHTAction } from './LDHTAction';
 import { LDHTAddNodeAction } from './LDHTAddNodeAction';
@@ -25,6 +24,7 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     addNode(nodeID: NodeID): Promise<void> {
         return new Promise(async (resolve, reject) => {
+            console.log("adding node");
             // Send an add node action
             const action = new LDHTAddNodeAction();
             action.actionStatus = schema.PotentialActionStatus;
@@ -57,6 +57,8 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             action.agent = (this.network.node as LocalRDFNode).uri;
             const entry = new LDHTEntry();
             entry.identifier = key;
+            // Value is an URI leading to the data
+            entry.value = value as IriString;
             action.object = entry;
             this.createAction(action).then(() => {
                 resolve();
@@ -82,13 +84,13 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     protected fetchRemoteNode(): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            fetch(this.uri)
-                .then((response) => {
-                    return response.text();
+            this.network.solidService.getDatasetStore(this.network.solidService.session, this.uri)
+                .then((store) => {
+                    return RDFSerializer.deserializeFromStore(DataFactory.namedNode(this.uri), store);
+                }).then((data: LocalRDFNode) => {
+                    this.actions = data.actions;
+                    resolve(data);
                 })
-                .then((text) => {
-                    return RDFSerializer.deserializeFromString(this.uri, text);
-                }).then(resolve)
                 .catch(reject);
         });
     }
@@ -106,11 +108,20 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
         });
     }
 
-    protected createAction<T extends Action>(action: T): Promise<T> {
+    protected createAction<T extends LDHTAction>(action: T): Promise<T> {
         return new Promise((resolve, reject) => {
-            console.log(this.uri);
-
-            resolve(action);
+            console.log(this.uri, this.actions);
+            const actionContainer = this.actions.find((a) => a.type === action.type);
+            const timestamp = new Date().getTime();
+            const uri = `${actionContainer}${timestamp}.ttl`;
+            const service = this.network.solidService;
+            const session = service.session;
+            service.getDatasetStore(session, uri).then((store) => {
+                store.addQuads(RDFSerializer.serializeToQuads(action));
+                return service.saveDatasetStore(session, uri, store);
+            }).then(() => {
+                resolve(action);
+            }).catch(reject);
         });
     }
 }

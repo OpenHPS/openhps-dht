@@ -7,13 +7,12 @@ import {
 } from '@openhps/core';
 import { LocalDHTNode } from '../LocalDHTNode';
 import { ldht } from '../../terms';
-import { RDFBuilder, IriString, tree, DataFactory, Thing, schema } from '@openhps/rdf';
+import { IriString, RDFBuilder, Thing, rdf, schema, tree } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RDFNode } from './RDFNode';
 import { DHTRDFNetwork } from '../../services';
-import { LDHTAction } from './LDHTAction';import { Collection } from '@openhps/solid';
-import { identifier } from '@openhps/rdf/dist/types/vocab/schema';
-;
+import { LDHTAction } from './LDHTAction';import { Collection, Node, Relation } from '@openhps/solid';
+import { LDHTEntry } from './LDHTEntry';
 
 @SerializableObject({
     rdf: {
@@ -35,31 +34,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     nodeID: number;
     @SerializableMember()
     collection: string;
-    @SerializableMapMember(String, String, {
-        rdf: {
-            predicate: undefined,
-            serializer: (value: Map<number, string[]>, object?: LocalDHTNode) => {
-                // Put the data as tree:member's for the collection
-                const collection = new Collection(object.collection as IriString);
-                collection.members = [];
-                
-                value.forEach((values, key) => {
-                    values.forEach((value) => {
-                        collection.members.push(
-                            RDFBuilder.blankNode()
-                                .add(ldht.key, key)
-                                .add(ldht.value, DataFactory.namedNode(value))
-                                .build() as any
-                        );
-                    });
-                });
-                return collection;
-            },
-            deserializer: (thing: Thing, dataType?: Serializable<any>) => {
-                return undefined;
-            },
-        },
-    })
+    @SerializableMapMember(String, String)
     dataStore?: Map<number, string[]>;
     // Convert to neighbouring nodes with tree relations
     @SerializableMapMember(Number, Array)
@@ -76,6 +51,17 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         },
     })
     actions: LDHTAction[];
+    @SerializableMember({
+        rdf: {
+            predicate: tree.relation,
+            serializer: (value: LocalRDFNode) => {
+                // Create a TREE relation referencing the data
+                return RDFBuilder.blankNode()
+                    .add(rdf.type, tree.Relation)
+                    .add(tree.node, value.dataUri)
+            }
+        }
+    })
     dataUri: IriString;
     nodesUri: IriString;
     network: DHTRDFNetwork;
@@ -96,6 +82,14 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     get collectionObject(): Collection {
         const collection = new Collection(this.collection as IriString);
         collection.members = [];
+        this.dataStore.forEach((value, key) => {
+            value.forEach((v) => {
+                const entry = new LDHTEntry();
+                entry.identifier = key;
+                entry.value = v as IriString;
+                collection.members.push(entry);
+            });
+        });
         return collection;
     }
 

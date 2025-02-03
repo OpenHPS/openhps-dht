@@ -16,8 +16,9 @@ describe('RDFNode', () => {
                 new LDHTRemoveNodeAction().setTarget(actionsUrl as IriString),
                 new LDHTStoreValueAction().setTarget(actionsUrl as IriString),
             ];
-            
-            RDFSerializer.stringify(node, {
+            const store = RDFSerializer.serializeToStore(node);
+            store.addQuads(RDFSerializer.serializeToQuads(node.collectionObject));
+            RDFSerializer.stringify(store, {
                 format: 'text/turtle'
             }).then((data) => {
                 console.log(data);
