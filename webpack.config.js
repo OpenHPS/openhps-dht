@@ -68,7 +68,7 @@ const bundle = (env, module) => ({
       commonjs2: '@openhps/core',
       amd: 'core',
       root: ['OpenHPS', 'core']
-    }
+    },
   },
   devtool: 'source-map',
   plugins: [],

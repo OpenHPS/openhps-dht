@@ -13,13 +13,12 @@ describe('DHTRDFService', () => {
     before((done) => {
         Promise.all([
             generate('http://localhost:3000', 'test1', 'test1@test.com', 'test123'),
-            // generate('http://localhost:3001', 'test2', 'test2@test.com', 'test123'),
-            // generate('http://localhost:3002', 'test3', 'test3@test.com', 'test123'),
+            generate('http://localhost:3001', 'test2', 'test2@test.com', 'test123'),
+            generate('http://localhost:3002', 'test3', 'test3@test.com', 'test123'),
         ])
             .then((secrets) => {
                 solidServices = secrets.map((secret, i) => {
                     const oidcIssuer = `http://localhost:${3000 + i}`;
-                    // console.log('Creating service', oidcIssuer, secret.id, secret.secret);
                     return new SolidClientService({
                         clientId: secret.id,
                         clientSecret: secret.secret,

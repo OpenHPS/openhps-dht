@@ -66,6 +66,7 @@
 
 ###  http://purl.org/ldht/hashFunction
 :hashFunction rdf:type owl:ObjectProperty ;
+              rdfs:domain <https://w3id.org/tree#Collection> ;
               rdfs:comment "The hashing function describes how input data is transformed to a value"@en ;
               rdfs:label "Hashing function"@en .
 

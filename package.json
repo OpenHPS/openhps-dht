@@ -33,6 +33,7 @@
     "cover": "nyc mocha --config test/.mocharc.json && nyc report --reporter=cobertura",
     "cover:ci": "nyc mocha --config test/.mocharc.json --reporter mocha-junit-reporter && nyc report --reporter=cobertura",
     "lint": "eslint src/**",
+    "docker:reset": "docker compose down && docker volume rm dht_test-data1 dht_test-data2 dht_test-data3 && docker compose up --build -d",
     "lint:fix": "npm run lint -- --fix",
     "clean": "shx rm -rf ./dist && shx rm -rf ./docs/out",
     "build": "npm run clean && npm-run-all --parallel build:ts:* && npm run build:webpack",
@@ -62,15 +63,15 @@
   },
   "peerDependencies": {
     "@openhps/core": ">=0.7.13",
-    "@openhps/rdf": ">=0.4.89",
+    "@openhps/rdf": ">=0.4.99",
     "reflect-metadata": ">=0.1.13"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@openhps/core": "0.7.16",
-    "@openhps/rdf": "0.4.96",
-    "@openhps/solid": "0.2.13",
+    "@openhps/rdf": "0.4.101",
+    "@openhps/solid": "0.2.18",
     "@types/chai": "^4.3.19",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.5",

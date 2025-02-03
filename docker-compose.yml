@@ -22,6 +22,7 @@ services:
       - USER_POD=test1
       - USER_PASSWORD=test123
       - BASE_URL=http://localhost:3000
+      - PORT=3000
     ports:
       - 3000:3000
     volumes:
@@ -33,8 +34,9 @@ services:
       - USER_POD=test2
       - USER_PASSWORD=test123
       - BASE_URL=http://localhost:3001
+      - PORT=3001
     ports:
-      - 3001:3000
+      - 3001:3001
     volumes:
       - test-data2:/data
   test-server3:
@@ -44,7 +46,8 @@ services:
       - USER_POD=test3
       - USER_PASSWORD=test123
       - BASE_URL=http://localhost:3002
+      - PORT=3002
     ports:
-      - 3002:3000
+      - 3002:3002
     volumes:
       - test-data3:/data

@@ -1,7 +1,7 @@
-import { SerializableObject } from '@openhps/core';
+import { SerializableMember, SerializableObject } from '@openhps/core';
 import { ldht } from '../../terms';
 import { LDHTAction } from './LDHTAction';
-import { IriString } from '@openhps/rdf';
+import { IriString, schema } from '@openhps/rdf';
 
 @SerializableObject({
     rdf: {
@@ -10,4 +10,11 @@ import { IriString } from '@openhps/rdf';
 })
 export class LDHTAddNodeAction extends LDHTAction {
     type: IriString = ldht.AddNodeAction;
+
+    @SerializableMember({
+        rdf: {
+            predicate: schema.object,
+        },
+    })
+    object: IriString;
 }

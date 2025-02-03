@@ -14,15 +14,13 @@ export class LocalDHTNode implements DHTNode {
     nodeID: number;
     @SerializableMember()
     collection: string;
-    @SerializableMember()
-    locator: string;
     @SerializableMapMember(String, String)
     dataStore?: Map<number, string[]>;
     @SerializableMapMember(Number, Array)
     buckets: Map<number, NodeID[]>;
     network: DHTNetwork;
 
-    constructor(nodeID: number, network: DHTNetwork) {
+    constructor(nodeID?: number, network?: DHTNetwork) {
         this.nodeID = nodeID;
         this.dataStore = new Map();
         this.buckets = new Map();

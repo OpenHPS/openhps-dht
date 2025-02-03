@@ -20,6 +20,7 @@ export abstract class LDHTAction extends SerializableThing {
     @SerializableMember({
         rdf: {
             predicate: schema.actionStatus,
+            serialize: false
         },
     })
     actionStatus?: IriString;
@@ -27,13 +28,15 @@ export abstract class LDHTAction extends SerializableThing {
     @SerializableMember({
         rdf: {
             predicate: schema.agent,
+            serialize: false
         },
     })
-    agent: IriString;
+    agent?: IriString;
 
     @SerializableMember({
         rdf: {
             predicate: schema.target,
+            serialize: false
         },
     })
     target?: IriString;
