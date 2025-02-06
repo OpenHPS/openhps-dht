@@ -3,8 +3,8 @@ import { IriString } from '@openhps/rdf';
 import { LDHTAction } from '.';
 
 export interface RDFNode extends DHTNode {
-    uri: IriString;
-    actions: LDHTAction[];
+    uri?: IriString;
+    actions?: LDHTAction[];
     /**
      * URI where the data is stored
      */

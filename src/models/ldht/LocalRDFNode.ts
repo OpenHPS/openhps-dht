@@ -98,7 +98,9 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     }
 
     ping(): Promise<void> {
-        return new Promise((resolve, reject) => {});
+        return new Promise((resolve, reject) => {
+
+        });
     }
 
     /**
@@ -111,7 +113,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
             super
                 .addNode(nodeID)
                 .then(() => {
-                    // Add in RDF store
+                    resolve();
                 })
                 .catch(reject);
         });

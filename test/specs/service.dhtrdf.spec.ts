@@ -21,7 +21,9 @@ describe('RDFNode', () => {
             RDFSerializer.stringify(store, {
                 format: 'text/turtle'
             }).then((data) => {
-                console.log(data);
+                // Deserialize
+                return RDFSerializer.deserializeFromString(node.uri, data);
+            }).then((deserializedNode) => {
                 done();
             }).catch(done);
         });

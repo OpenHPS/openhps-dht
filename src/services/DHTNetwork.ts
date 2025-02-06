@@ -57,17 +57,14 @@ export abstract class DHTNetwork {
     /**
      * Initialize the network
      * @param nodeID Node identifier to use as the local node
-     * @param model Model to use
+     * @param _model Model to use
      * @returns {Promise<void>} Promise when the network is initialized
      */
-    initialize(nodeID: number, model?: Model): Promise<void> {
+    initialize(nodeID: number, _model?: Model): Promise<void> {
         return new Promise((resolve, reject) => {
             this.createLocalNode(nodeID)
                 .then((node) => {
                     this.node = node;
-                    return this.addNode(this.node);
-                })
-                .then(() => {
                     resolve();
                 })
                 .catch(reject);

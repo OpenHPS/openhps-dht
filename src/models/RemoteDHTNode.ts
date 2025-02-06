@@ -1,9 +1,11 @@
+import { DHTNetwork } from '../services';
 import { DHTNode, NodeID } from './DHTNode';
 
 /**
  * Proxy handler for a remote DHT node
  */
 export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
+    abstract network: DHTNetwork;
     collection: string;
     nodeID: number;
 
@@ -12,19 +14,25 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
             case 'nodeID':
                 return this.nodeID;
             case 'addNode':
-                return this.addNode.bind(this);
+                return this.addNode.bind(receiver);
             case 'removeNode':
-                return this.removeNode.bind(this);
+                return this.removeNode.bind(receiver);
             case 'store':
-                return this.store.bind(this);
+                return this.store.bind(receiver);
             case 'hasValue':
-                return this.hasValue.bind(this);
+                return this.hasValue.bind(receiver);
             case 'findValue':
-                return this.findValue.bind(this);
+                return this.findValue.bind(receiver);
             case 'ping':
-                return this.ping.bind(this);
+                return this.ping.bind(receiver);
             default:
-                return Reflect.get(target, p, receiver);
+                const targetProperty = Reflect.get(target, p, receiver);
+                const selfProperty = Reflect.get(this, p, receiver);
+                if (selfProperty) {
+                    return selfProperty;
+                } else {
+                    return targetProperty;
+                }
         }
     }
 

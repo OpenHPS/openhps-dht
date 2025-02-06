@@ -20,15 +20,15 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     addNode(node: DHTNode): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Set reference to network
+            node = this.nodeHandler ? new Proxy(node, this.nodeHandler) : node;
+            node.network = this;
             // Add node locally
-            this.nodes.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
-
+            this.nodes.set(node.nodeID, node);
+            
             Promise.all(
                 Array.from(this.nodes.values()).map((otherNode) => {
-                    if (otherNode.nodeID !== node.nodeID) {
-                        return Promise.all([otherNode.addNode(node.nodeID), node.addNode(otherNode.nodeID)]);
-                    }
-                    return Promise.resolve();
+                    return Promise.all([otherNode.addNode(node.nodeID), node.addNode(otherNode.nodeID)]);
                 }),
             )
                 .then(() => resolve())

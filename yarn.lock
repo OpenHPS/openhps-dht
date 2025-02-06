@@ -4935,6 +4935,15 @@
   resolved "https://registry.npmjs.org/@istanbuljs/schema/-/schema-0.1.3.tgz"
   integrity sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA==
 
+"@janeirodigital/interop-utils@^1.0.0-rc.24":
+  version "1.0.0-rc.24"
+  resolved "https://registry.yarnpkg.com/@janeirodigital/interop-utils/-/interop-utils-1.0.0-rc.24.tgz#6321ac918e2ecec46ed886bb71649f79051bf238"
+  integrity sha512-mLOhitq6SyRSZi1DxrzTTgms7Mt0zgx/5KezkkyMBH3OYuYJBGPH6A93iBJl0wA5Ln90A9KnyiC7I/7+IUYhoQ==
+  dependencies:
+    http-link-header "^1.1.1"
+    jsonld-streaming-parser "^3.2.1"
+    n3 "^1.17.1"
+
 "@jeswr/prefixcc@^1.2.1":
   version "1.2.1"
   resolved "https://registry.npmjs.org/@jeswr/prefixcc/-/prefixcc-1.2.1.tgz"
@@ -5085,10 +5094,10 @@
     ml-levenberg-marquardt "^4.1.3"
     ts-md5 "^1.3.1"
 
-"@openhps/solid@0.2.18":
-  version "0.2.18"
-  resolved "https://registry.yarnpkg.com/@openhps/solid/-/solid-0.2.18.tgz#8cec4ed2ae82a0ab7b9a8d747b2e469c9d9fee60"
-  integrity sha512-OToOFrLw/RZjLirjenq5K0XtbY2nh4AxRXn8OTgw3EEu44sGmUiLTSBlzJ2d+uPKDejyxWrppwHNWmYAALE5Yg==
+"@openhps/solid@0.2.21":
+  version "0.2.21"
+  resolved "https://registry.yarnpkg.com/@openhps/solid/-/solid-0.2.21.tgz#c0581d36352e50ecf142e38686a35d727e7707b7"
+  integrity sha512-GV8CESKTBp1Lrh2o+MlJ0OiWuIKD88W4vhXcUsdazNQTG0pIfb+zMalDpRrBKPBLdLrdh+0hycz4cpXR9WEzoA==
   dependencies:
     "@comunica/query-sparql-link-traversal-solid" "^0.6.1"
     "@comunica/query-sparql-solid" "^4.0.2"
@@ -5097,6 +5106,9 @@
     "@inrupt/solid-client-authn-browser" "^2.3.0"
     "@inrupt/solid-client-authn-node" "^2.3.0"
     "@inrupt/solid-client-notifications" "^3.0.1"
+    "@solid-notifications/discovery" "^0.1.2"
+    "@solid-notifications/subscription" "^0.1.2"
+    "@solid-notifications/types" "^0.1.2"
     cookie-session "^2.1.0"
     cross-fetch "^4.0.0"
     express "^4.19.2"
@@ -5204,6 +5216,28 @@
   dependencies:
     process "^0.11.10"
     readable-stream "^4.5.1"
+
+"@solid-notifications/discovery@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@solid-notifications/discovery/-/discovery-0.1.2.tgz#3bd8a6d54da9e8fb2ba8ae482f14d474a6ee3e20"
+  integrity sha512-jkqV+Ceknw2XE0Vl/4O2BBFnkCZQhNDVt6B9nzbVD4T3aNhMlK/gZS6oNHqa23obgFNCtgFBmeeRKiN1/v8lcw==
+  dependencies:
+    "@janeirodigital/interop-utils" "^1.0.0-rc.24"
+    n3 "^1.17.2"
+
+"@solid-notifications/subscription@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@solid-notifications/subscription/-/subscription-0.1.2.tgz#0f4130f91f091902d00f0e57cb28101e74c7431f"
+  integrity sha512-XnnqNsLOIdUAzB11aROzfRiJLHJjTOaHMSrnn3teQRtE0BwpbnAJtzGG/m3JNUR+QqyjKkB3jfibxJjzvI/HQg==
+  dependencies:
+    "@janeirodigital/interop-utils" "^1.0.0-rc.24"
+    "@solid-notifications/discovery" "^0.1.2"
+    n3 "^1.17.2"
+
+"@solid-notifications/types@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@solid-notifications/types/-/types-0.1.2.tgz#3ab31c6813a37649f91cbd6230369af53ef0b2a8"
+  integrity sha512-0SP6XmOjFhqt/m4FFXnYh6slSiXMoheO3UpU7POSDStLSb6tLVAQLiy0hBKvNyGBLlftRObHWoBWlt2X/LhVRg==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.11"
@@ -8746,7 +8780,7 @@ jsonld-context-parser@^3.0.0:
     http-link-header "^1.0.2"
     relative-to-absolute-iri "^1.0.5"
 
-jsonld-streaming-parser@^3.0.1:
+jsonld-streaming-parser@^3.0.1, jsonld-streaming-parser@^3.2.1:
   version "3.4.0"
   resolved "https://registry.npmjs.org/jsonld-streaming-parser/-/jsonld-streaming-parser-3.4.0.tgz"
   integrity sha512-897CloyQgQidfkB04dLM5XaAXVX/cN9A2hvgHJo4y4jRhIpvg3KLMBBfcrswepV2N3T8c/Rp2JeFdWfVsbVZ7g==
@@ -9364,7 +9398,7 @@ mute-stream@^1.0.0:
   resolved "https://registry.npmjs.org/mute-stream/-/mute-stream-1.0.0.tgz"
   integrity sha512-avsJQhyd+680gKXyG/sQc0nXaC6rBkPOfyHYcFb9+hdkqQkR9bdnkJ0AMZhke0oesPqIO+mFFJ+IdBc7mst4IA==
 
-n3@^1.0.0, n3@^1.17.2:
+n3@^1.0.0, n3@^1.17.1, n3@^1.17.2:
   version "1.23.1"
   resolved "https://registry.yarnpkg.com/n3/-/n3-1.23.1.tgz#42a5aded4802db7a3c5d22feec19bdd919190268"
   integrity sha512-3f0IYJo+6+lXypothmlwPzm3wJNffsxUwnfONeFv2QqWq7RjTvyCMtkRXDUXW6XrZoOzaQX8xTTSYNlGjXcGtw==

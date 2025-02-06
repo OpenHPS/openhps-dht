@@ -1,5 +1,4 @@
-import { DataFactory, foaf, IriString, RDFSerializer } from '@openhps/rdf';
-import { DHTNode, NodeID } from '../models/DHTNode';
+import { createChangeLog, DataFactory, foaf, IriString, RDFSerializer } from '@openhps/rdf';
 import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
 import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
 
@@ -22,6 +21,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
     constructor(collectionName?: string, collectionUri?: IriString) {
         super(collectionName);
         this.collectionInstance = new Collection(collectionUri);
+        this.nodeHandler = new RemoteRDFNode();
     }
 
     set service(service: DHTService) {
@@ -106,6 +106,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                         if (!this.subscription) {
                             throw new Error('Solid Pod does not support Websocket notifications!');
                         }
+                        this.service.logger('debug', `Listening for updates on ${this.actionsUri}`);
                         this.subscription.addListener('update', console.log);
                         resolve();
                     })
@@ -183,7 +184,6 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     resolve(node);
                 })
                 .catch(err => {
-                    console.error(err);
                     reject(err);
                 });
         });
@@ -218,7 +218,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     // Store node
                     const quads = RDFSerializer.serializeToQuads(node);
                     store.addQuads(quads);
-                    return this.solidService.saveDatasetStore(this.solidService.session, nodeUrl, store)
+                    return this.solidService.saveDataset(this.solidService.session, nodeUrl, createChangeLog(store) as any)
                 } else {
                     resolve(node);
                 }
@@ -241,101 +241,6 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
             }).catch(err => {
                 reject(err);
             });
-        });
-    }
-
-    /**
-     * Add a node to the network
-     * @param {DHTNode} node Node to add
-     * @returns {Promise<void>} Promise when the node is added
-     */
-    addNode(node: RemoteRDFNode): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Add the node in memory and broadcast to nearby other nodes
-            this.nodes.set(node.nodeID, this.nodeHandler ? new Proxy(node, this.nodeHandler) : node);
-            // Save the node to the Solid pod
-            console.log("Adding node", node);
-
-            Promise.all(
-                Array.from(this.nodes.values()).map((otherNode) => {
-                    if (otherNode.nodeID !== node.nodeID) {
-                        return Promise.all([otherNode.addNode(node.nodeID), node.addNode(otherNode.nodeID)]);
-                    }
-                    return Promise.resolve();
-                }),
-            )
-                .then(() => resolve())
-                .catch(reject);
-        });
-    }
-
-    removeNode(node: RemoteRDFNode): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Delete node locally
-            this.nodes.delete(node.nodeID);
-            // Save the deleted node
-
-            Promise.all(Array.from(this.nodes.values()).map((otherNode) => otherNode.removeNode(node.nodeID)))
-                .then(() => resolve())
-                .catch(reject);
-        });
-    }
-
-    findNodeById(nodeID: NodeID): Promise<DHTNode> {
-        return super.findNodeById(nodeID);
-    }
-
-    /**
-     * Find nodes by key using local cached nodes
-     * @param key 
-     * @param count 
-     * @returns 
-     */
-    findNodesByKey(key: number, count?: number): Promise<DHTNode[]> {
-        return super.findNodesByKey(key, count);
-    }
-
-    findValue(key: number): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            const foundValue: string[] = [];
-            this.findNodesByKey(key)
-                .then((closestNodes) => {
-                    if (closestNodes.length > 0) {
-                    }
-                })
-                .catch(reject);
-        });
-    }
-
-    storeValue(key: number, value: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.findNodesByKey(key, 1)
-                .then((targetNode) => {
-                    if (targetNode.length === 0) {
-                        throw new Error('No nodes found');
-                    }
-                    return targetNode[0].store(key, value);
-                })
-                .then(() => {
-                    resolve();
-                })
-                .catch(reject);
-        });
-    }
-
-    ping(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Create a ping action to all registered nodes
-            const pingPromises = Array.from(this.nodes.values()).map((node) => node.ping());
-            Promise.all(pingPromises)
-                .then(() => {
-                    resolve();
-                })
-                .catch(reject);
-
-            setTimeout(() => {
-                reject(new Error('Ping timeout: Not all nodes responded within 10 seconds'));
-            }, 10000);
         });
     }
 

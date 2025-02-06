@@ -1,5 +1,5 @@
-import { SerializableMember, SerializableObject } from '@openhps/core';
-import { IriString, SerializableThing, schema } from '@openhps/rdf';
+import { NumberType, SerializableMember, SerializableObject } from '@openhps/core';
+import { DataFactory, IriString, SerializableThing, Thing, schema } from '@openhps/rdf';
 import { ldht } from '../../terms';
 
 @SerializableObject({
@@ -14,13 +14,15 @@ export abstract class LDHTAction extends SerializableThing {
         rdf: {
             predicate: ldht.timeout,
         },
+        numberType: NumberType.INTEGER
     })
     timeout?: number;
 
     @SerializableMember({
         rdf: {
             predicate: schema.actionStatus,
-            serialize: false
+            serializer: (value: IriString) => DataFactory.namedNode(value),
+            deserializer: (value: Thing) => value.value,
         },
     })
     actionStatus?: IriString;
@@ -28,7 +30,8 @@ export abstract class LDHTAction extends SerializableThing {
     @SerializableMember({
         rdf: {
             predicate: schema.agent,
-            serialize: false
+            serializer: (value: IriString) => DataFactory.namedNode(value),
+            deserializer: (value: Thing) => value.value,
         },
     })
     agent?: IriString;
@@ -36,7 +39,8 @@ export abstract class LDHTAction extends SerializableThing {
     @SerializableMember({
         rdf: {
             predicate: schema.target,
-            serialize: false
+            serializer: (value: IriString) => DataFactory.namedNode(value),
+            deserializer: (value: Thing) => value.value,
         },
     })
     target?: IriString;
@@ -47,6 +51,9 @@ export abstract class LDHTAction extends SerializableThing {
     }
 }
 
+/**
+ * Action status
+ */
 export class ActionStatus {
     static readonly CompletedActionStatus = schema.CompletedActionStatus;
     static readonly FailedActionStatus = schema.FailedActionStatus;

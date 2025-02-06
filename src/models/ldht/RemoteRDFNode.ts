@@ -1,4 +1,4 @@
-import { Action, DataFactory, IriString, RDFSerializer, schema } from '@openhps/rdf';
+import { Action, createChangeLog, DataFactory, IriString, RDFSerializer, schema, Store } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RemoteDHTNode } from '../RemoteDHTNode';
 import { RDFNode } from './RDFNode';
@@ -14,25 +14,26 @@ import { LDHTPingAction } from './LDHTPingAction';
 
 @SerializableObject()
 export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
-    @SerializableMember()
-    uri: IriString;
-    @SerializableArrayMember(LDHTAction)
-    actions: LDHTAction[];
+    uri?: IriString;
+    actions?: LDHTAction[];
     dataUri: IriString;
     nodesUri: IriString;
     network: DHTRDFNetwork;
 
     addNode(nodeID: NodeID): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            console.log("adding node");
-            // Send an add node action
-            const action = new LDHTAddNodeAction();
-            action.actionStatus = schema.PotentialActionStatus;
-            action.agent = (this.network.node as LocalRDFNode).uri;
-            action.object = (await this.network.findNodeById(nodeID) as LocalRDFNode).uri;
-            this.createAction(action).then(() => {
-                resolve();
-            }).catch(reject);
+            try{
+                // Send an add node action
+                const action = new LDHTAddNodeAction();
+                action.actionStatus = schema.PotentialActionStatus;
+                action.agent = (this.network.node as LocalRDFNode).uri;
+                action.object = (await this.network.findNodeById(nodeID) as RemoteRDFNode).uri;
+                this.createAction(action).then(() => {
+                    resolve();
+                }).catch(reject);
+            } catch (e) {
+                console.log(e);
+            }
         });
     }
 
@@ -110,16 +111,17 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     protected createAction<T extends LDHTAction>(action: T): Promise<T> {
         return new Promise((resolve, reject) => {
-            console.log(this.uri, this.actions);
             const actionContainer = this.actions.find((a) => a.type === action.type);
+            if (!actionContainer) {
+                return reject(new Error("Action container not found!"));
+            }
             const timestamp = new Date().getTime();
-            const uri = `${actionContainer}${timestamp}.ttl`;
+            const uri = `${actionContainer.target}${timestamp}.ttl`;
             const service = this.network.solidService;
             const session = service.session;
-            service.getDatasetStore(session, uri).then((store) => {
-                store.addQuads(RDFSerializer.serializeToQuads(action));
-                return service.saveDatasetStore(session, uri, store);
-            }).then(() => {
+            const store = new Store();
+            store.addQuads(RDFSerializer.serializeToQuads(action));
+            service.saveDataset(session, uri, createChangeLog(store) as any).then(() => {
                 resolve(action);
             }).catch(reject);
         });

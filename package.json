@@ -71,7 +71,7 @@
     "@commitlint/config-conventional": "^19.5.0",
     "@openhps/core": "0.7.16",
     "@openhps/rdf": "0.4.101",
-    "@openhps/solid": "0.2.18",
+    "@openhps/solid": "0.2.21",
     "@types/chai": "^4.3.19",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.5.5",
