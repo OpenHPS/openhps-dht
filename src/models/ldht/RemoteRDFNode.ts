@@ -1,8 +1,8 @@
-import { Action, createChangeLog, DataFactory, IriString, RDFSerializer, schema, Store } from '@openhps/rdf';
+import { DataFactory, IriString, RDFSerializer, schema, Store } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RemoteDHTNode } from '../RemoteDHTNode';
 import { RDFNode } from './RDFNode';
-import { SerializableArrayMember, SerializableMember, SerializableObject } from '@openhps/core';
+import { SerializableObject } from '@openhps/core';
 import { DHTRDFNetwork } from '../../services/DHTRDFNetwork';
 import { LDHTAction } from './LDHTAction';
 import { LDHTAddNodeAction } from './LDHTAddNodeAction';
@@ -121,7 +121,7 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             const session = service.session;
             const store = new Store();
             store.addQuads(RDFSerializer.serializeToQuads(action));
-            service.saveDataset(session, uri, createChangeLog(store) as any).then(() => {
+            service.saveDataset(session, uri, store).then(() => {
                 resolve(action);
             }).catch(reject);
         });

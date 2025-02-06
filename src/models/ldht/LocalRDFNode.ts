@@ -1,4 +1,5 @@
 import {
+    NumberType,
     Serializable,
     SerializableArrayMember,
     SerializableMapMember,
@@ -30,15 +31,9 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         rdf: {
             predicate: ldht.nodeID,
         },
+        numberType: NumberType.INTEGER,
     })
     nodeID: number;
-    @SerializableMember()
-    collection: string;
-    @SerializableMapMember(String, String)
-    dataStore?: Map<number, string[]>;
-    // Convert to neighbouring nodes with tree relations
-    @SerializableMapMember(Number, Array)
-    buckets: Map<number, NodeID[]>;
     @SerializableMember({
         rdf: {
             identifier: true,

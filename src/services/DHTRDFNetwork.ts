@@ -1,4 +1,4 @@
-import { createChangeLog, DataFactory, foaf, IriString, RDFSerializer } from '@openhps/rdf';
+import { DataFactory, foaf, IriString, RDFSerializer } from '@openhps/rdf';
 import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
 import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
 
@@ -218,7 +218,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     // Store node
                     const quads = RDFSerializer.serializeToQuads(node);
                     store.addQuads(quads);
-                    return this.solidService.saveDataset(this.solidService.session, nodeUrl, createChangeLog(store) as any)
+                    return this.solidService.saveDataset(this.solidService.session, nodeUrl, store)
                 } else {
                     resolve(node);
                 }

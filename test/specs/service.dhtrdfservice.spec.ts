@@ -1,9 +1,10 @@
 import 'mocha';
 import { expect } from 'chai';
-import { DHTRDFNetwork, DHTService } from '../../src';
+import { DHTRDFNetwork, DHTService, LDHTAddNodeAction, LDHTPingAction, LocalRDFNode } from '../../src';
 import { SolidClientService } from '@openhps/solid';
 import { generate } from '../utils/secret';
 import { Model, ModelBuilder } from '@openhps/core';
+import { DataFactory, RDFSerializer } from '@openhps/rdf';
 
 describe('DHTRDFService', () => {
     let services: DHTService[] = [];
