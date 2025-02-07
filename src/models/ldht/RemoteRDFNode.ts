@@ -121,7 +121,7 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             const session = service.session;
             const store = new Store();
             store.addQuads(RDFSerializer.serializeToQuads(action));
-            service.saveDataset(session, uri, store).then(() => {
+            service.saveDataset(session, uri, store, true).then(() => {
                 resolve(action);
             }).catch(reject);
         });

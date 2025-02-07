@@ -166,7 +166,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             actionsUrl,
                             {
                                 read: true,
-                                write: false,
+                                write: true, // TODO: Fix
                                 append: true,
                                 controlRead: false,
                                 controlWrite: false,
