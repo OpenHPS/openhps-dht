@@ -8,7 +8,7 @@ import {
 } from '@openhps/core';
 import { LocalDHTNode } from '../LocalDHTNode';
 import { ldht } from '../../terms';
-import { IriString, RDFBuilder, Thing, rdf, schema, tree } from '@openhps/rdf';
+import { DataFactory, IriString, RDFBuilder, RDFSerializer, SerializableThing, Store, Thing, rdf, schema, tree } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RDFNode } from './RDFNode';
 import { DHTRDFNetwork } from '../../services';
@@ -108,6 +108,9 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
             super
                 .addNode(nodeID)
                 .then(() => {
+                    // Save the node to the network
+                    return this.saveNodes();
+                }).then(() => {
                     resolve();
                 })
                 .catch(reject);
@@ -120,6 +123,37 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
      * @returns {Promise<void>} Promise when the node is removed
      */
     removeNode(nodeID: NodeID): Promise<void> {
-        return new Promise((resolve) => {});
+        return new Promise((resolve, reject) => {
+            super
+                .removeNode(nodeID)
+                .then(() => {
+                    // Save the node to the network
+                    return this.saveNodes();
+                }).then(() => {
+                    resolve();
+                })
+                .catch(reject);
+        });
+    }
+
+    protected saveNodes(): Promise<void> {
+        return new Promise((resolve, reject) => {
+            // Save the nodes in nodes.ttl
+            const uri = this.nodesUri;
+            const service = this.network.solidService;
+            const session = service.session;
+            const collection = new Collection(this.collection + '/nodes/' as IriString);
+            this.network.nodes.forEach((node: LocalRDFNode) => {
+                if (node.nodeID === this.nodeID) {
+                    return;
+                }
+                collection.members.push(new SerializableThing(node.uri));
+            });
+            const store = RDFSerializer.serializeToStore(collection);
+            service.logger('debug', `Saving nodes to ${uri}`);
+            service.saveDataset(session, uri, store).then(() => {
+                resolve();
+            }).catch(reject);
+        });
     }
 }
