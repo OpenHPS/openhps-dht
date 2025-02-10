@@ -1,8 +1,8 @@
-import { DataFactory, foaf, IriString, RDFSerializer } from '@openhps/rdf';
+import { DataFactory, foaf, IriString, RDFSerializer, schema } from '@openhps/rdf';
 import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
 import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
 
-import { Collection, DatasetSubscription, SolidClientService } from '@openhps/solid';
+import { Activity, Collection, DatasetSubscription, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/ldht/RemoteRDFNode';
 import { Model } from '@openhps/core';
@@ -107,12 +107,65 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             throw new Error('Solid Pod does not support Websocket notifications!');
                         }
                         this.service.logger('debug', `Listening for updates on ${this.actionsUri}`);
-                        this.subscription.addListener('update', console.log);
+                        this.subscription.addListener('activity', this.onAction.bind(this));
                         resolve();
                     })
                     .catch(reject);
             });
         });
+    }
+
+    onAction(activity: Activity): void {
+        const object = activity.object;
+        if (object) {
+            // Handle actions
+            this.service.logger('debug', `Received action: ${object}`);
+            this.solidService.getDatasetStore(this.solidService.session, object).then((store) => {
+                const action = RDFSerializer.deserializeFromStore(undefined, store);
+                if (action) {
+                    if (action instanceof LDHTAddNodeAction) {
+                        // Add a node
+                        // Fetch the remote node first
+                        this.fetchRemoteNode(action.object).then((node) => {
+                            return this.addNode(node);
+                        }).then(() => {
+                            // Set action completed
+                            action.actionStatus = schema.CompletedActionStatus;
+                            // const store = RDFSerializer.serializeToStore(action);
+                            // return this.solidService.saveDataset(this.solidService.session, object, store);
+                        }).catch((err) => {
+                            this.service.logger('error', `Failed to fetch remote node: ${err.message}`);
+                        });
+                    } else if (action instanceof LDHTRemoveNodeAction) {
+                        // Remove a node
+                        // Fetch the remote node first
+                        this.fetchRemoteNode(action.object).then((node) => {
+                            return this.removeNode(node);
+                        }).then(() => {
+                            // Set action completed
+                            action.actionStatus = schema.CompletedActionStatus;
+                            // const store = RDFSerializer.serializeToStore(action);
+                            // return this.solidService.saveDataset(this.solidService.session, object, store);
+                        }).catch((err) => {
+                            this.service.logger('error', `Failed to fetch remote node: ${err.message}`);
+                        });
+                    } else if (action instanceof LDHTStoreValueAction) {
+                        // Store a value
+                        this.storeValue(action.object.identifier, action.object.value)
+                            .then(() => {
+                                // Set action completed
+                                action.actionStatus = schema.CompletedActionStatus;
+                                const store = RDFSerializer.serializeToStore(action);
+                                return this.solidService.saveDataset(this.solidService.session, object, store);
+                            }).catch((err) => {
+                                this.service.logger('error', `Failed to store value: ${err.message}`);
+                            });
+                    }
+                }
+            }).catch((err) => {
+                this.service.logger('error', `Failed to deserialize action: ${err.message}`);
+            });
+        }
     }
 
     createLocalNode(nodeID: number): Promise<LocalRDFNode> {
@@ -154,10 +207,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             url,
                             {
                                 read: true,
-                                write: false,
-                                append: false,
-                                controlRead: false,
-                                controlWrite: false,
+                                public: true
                             },
                             foaf.Agent,
                             this.solidService.session,
@@ -166,10 +216,9 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             actionsUrl,
                             {
                                 read: true,
-                                write: true, // TODO: Fix
                                 append: true,
-                                controlRead: false,
-                                controlWrite: false,
+                                public: true,
+                                default: true
                             },
                             foaf.Agent,
                             this.solidService.session,
@@ -186,6 +235,18 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                 .catch(err => {
                     reject(err);
                 });
+        });
+    }
+
+    protected fetchRemoteNode(uri: IriString): Promise<LocalRDFNode> {
+        return new Promise((resolve, reject) => {
+            this.solidService.getDatasetStore(this.solidService.session, uri)
+                .then((store) => {
+                    return RDFSerializer.deserializeFromStore(DataFactory.namedNode(uri), store);
+                }).then((data: LocalRDFNode) => {
+                    resolve(data);
+                })
+                .catch(reject);
         });
     }
 
@@ -228,10 +289,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     nodeUrl,
                     {
                         read: true,
-                        write: false,
-                        append: false,
-                        controlRead: false,
-                        controlWrite: false,
+                        public: true
                     },
                     foaf.Agent,
                     this.solidService.session,

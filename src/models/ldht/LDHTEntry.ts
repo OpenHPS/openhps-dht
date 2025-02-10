@@ -10,8 +10,7 @@ import { dcterms, IriString, schema, SerializableThing } from '@openhps/rdf';
 export class LDHTEntry extends SerializableThing {
     @SerializableMember({
         rdf: {
-            predicate: dcterms.identifier,
-            identifier: true,
+            predicate: dcterms.identifier
         },
     })
     identifier: number;

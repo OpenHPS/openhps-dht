@@ -22,7 +22,12 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     addNode(nodeID: NodeID): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            try{
+            // Do not add itself
+            if (nodeID === this.nodeID) {
+                return resolve();
+            }
+            
+            try {
                 // Send an add node action
                 const action = new LDHTAddNodeAction();
                 action.actionStatus = schema.PotentialActionStatus;
@@ -111,18 +116,54 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     protected createAction<T extends LDHTAction>(action: T): Promise<T> {
         return new Promise((resolve, reject) => {
+            const service = this.network.solidService;
+            const session = service.session;
+
+            function getActionStatus(actionUri: IriString): Promise<IriString> {
+                return new Promise((resolve, reject) => {
+                    service.getDatasetStore(session, actionUri).then((store) => {
+                        const action: LDHTAction = RDFSerializer.deserializeFromStore(undefined, store);
+                        return resolve(action.actionStatus);
+                    }).catch(err => {
+                        service.logger('error', `Unable to get action status for ${actionUri}`, err);
+                        reject(new Error(`Unable to get action status for ${actionUri}. ${err.message}`));
+                    });
+                });
+            }
+
             const actionContainer = this.actions.find((a) => a.type === action.type);
             if (!actionContainer) {
                 return reject(new Error("Action container not found!"));
             }
-            const timestamp = new Date().getTime();
+            // Random uuidv4
+            const timestamp = new Date().getTime() + Math.floor(Math.random() * 1000);
             const uri = `${actionContainer.target}${timestamp}.ttl`;
-            const service = this.network.solidService;
-            const session = service.session;
+            action.id = uri as IriString;
+
             const store = new Store();
             store.addQuads(RDFSerializer.serializeToQuads(action));
-            service.saveDataset(session, uri, store, true).then(() => {
-                resolve(action);
+            service.saveDataset(session, uri, store, true).then((dataset) => {
+                action.id = (dataset as any).internal_resourceInfo.sourceIri;
+
+                // Await the action to be saved
+                const interval = setInterval(() => {
+                    getActionStatus(action.id as IriString).then((status) => {
+                        if (status === schema.CompletedActionStatus) {
+                            clearInterval(interval);
+                            resolve(action);
+                        } else if (status === schema.FailedActionStatus) {
+                            clearInterval(interval);
+                            reject(new Error("Action failed"));
+                        } else if (status === schema.PotentialActionStatus || status === schema.ActiveActionStatus) {
+                            // Action is still active
+                        }
+                    }).catch(reject);
+                }, 1000);
+                // Create a timeout
+                setTimeout(() => {
+                    clearInterval(interval);
+                    reject(new Error("Action timed out"));
+                }, action.timeout ?? 10000);
             }).catch(reject);
         });
     }

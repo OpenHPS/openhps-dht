@@ -28,7 +28,12 @@ export class DHTMemoryNetwork extends DHTNetwork {
             
             Promise.all(
                 Array.from(this.nodes.values()).map((otherNode) => {
-                    return Promise.all([otherNode.addNode(node.nodeID), node.addNode(otherNode.nodeID)]);
+                    return Promise.all([
+                        // Add the new node to the other node
+                        otherNode.addNode(node.nodeID), 
+                        // Add the other node to the new node
+                        node.addNode(otherNode.nodeID)
+                    ]);
                 }),
             )
                 .then(() => resolve())

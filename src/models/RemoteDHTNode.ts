@@ -11,8 +11,6 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
 
     get?(target: DHTNode, p: PropertyKey, receiver: any): any {
         switch (p) {
-            case 'nodeID':
-                return this.nodeID;
             case 'addNode':
                 return this.addNode.bind(receiver);
             case 'removeNode':
