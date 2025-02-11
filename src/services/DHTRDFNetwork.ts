@@ -131,8 +131,11 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                         }).then(() => {
                             // Set action completed
                             action.actionStatus = schema.CompletedActionStatus;
-                            // const store = RDFSerializer.serializeToStore(action);
-                            // return this.solidService.saveDataset(this.solidService.session, object, store);
+                            const changes = RDFSerializer.serializeToChangeLog(action);
+                            store.additions = changes.additions;
+                            store.deletions = changes.deletions;
+                            this.service.logger('debug', `Updating action status to completed for: ${object}`);
+                            return this.solidService.saveDataset(this.solidService.session, object, store);
                         }).catch((err) => {
                             this.service.logger('error', `Failed to fetch remote node: ${err.message}`);
                         });
@@ -207,7 +210,8 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             url,
                             {
                                 read: true,
-                                public: true
+                                public: true,
+                                group: true
                             },
                             foaf.Agent,
                             this.solidService.session,
@@ -218,7 +222,8 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                                 read: true,
                                 append: true,
                                 public: true,
-                                default: true
+                                default: true,
+                                group: true
                             },
                             foaf.Agent,
                             this.solidService.session,
@@ -289,7 +294,8 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     nodeUrl,
                     {
                         read: true,
-                        public: true
+                        public: true,
+                        group: true
                     },
                     foaf.Agent,
                     this.solidService.session,
