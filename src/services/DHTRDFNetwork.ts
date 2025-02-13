@@ -1,11 +1,11 @@
 import { DataFactory, foaf, IriString, RDFSerializer, schema } from '@openhps/rdf';
 import { LocalRDFNode } from '../models/ldht/LocalRDFNode';
-import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
+import { LDHTAction, LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction } from '../models/ldht';
 
 import { Activity, Collection, DatasetSubscription, SolidClientService } from '@openhps/solid';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
 import { RemoteRDFNode } from '../models/ldht/RemoteRDFNode';
-import { Model } from '@openhps/core';
+import { createChangeLog, Model } from '@openhps/core';
 import { DHTService } from './DHTService';
 
 /**
@@ -119,10 +119,10 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
         const object = activity.object;
         if (object) {
             // Handle actions
-            this.service.logger('debug', `Received action: ${object}`);
             this.solidService.getDatasetStore(this.solidService.session, object).then((store) => {
-                const action = RDFSerializer.deserializeFromStore(undefined, store);
+                let action: LDHTAction = RDFSerializer.deserializeFromStore(undefined, store);
                 if (action) {
+                    this.service.logger('debug', `Received (${action.constructor.name}) action: ${object}`);
                     if (action instanceof LDHTAddNodeAction) {
                         // Add a node
                         // Fetch the remote node first
@@ -130,6 +130,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             return this.addNode(node);
                         }).then(() => {
                             // Set action completed
+                            action = createChangeLog(action);
                             action.actionStatus = schema.CompletedActionStatus;
                             const changes = RDFSerializer.serializeToChangeLog(action);
                             store.additions = changes.additions;
@@ -146,9 +147,13 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                             return this.removeNode(node);
                         }).then(() => {
                             // Set action completed
+                            action = createChangeLog(action);
                             action.actionStatus = schema.CompletedActionStatus;
-                            // const store = RDFSerializer.serializeToStore(action);
-                            // return this.solidService.saveDataset(this.solidService.session, object, store);
+                            const changes = RDFSerializer.serializeToChangeLog(action);
+                            store.additions = changes.additions;
+                            store.deletions = changes.deletions;
+                            this.service.logger('debug', `Updating action status to completed for: ${object}`);
+                            return this.solidService.saveDataset(this.solidService.session, object, store);
                         }).catch((err) => {
                             this.service.logger('error', `Failed to fetch remote node: ${err.message}`);
                         });
@@ -156,10 +161,14 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                         // Store a value
                         this.storeValue(action.object.identifier, action.object.value)
                             .then(() => {
-                                // Set action completed
-                                action.actionStatus = schema.CompletedActionStatus;
-                                const store = RDFSerializer.serializeToStore(action);
-                                return this.solidService.saveDataset(this.solidService.session, object, store);
+                               // Set action completed
+                               action = createChangeLog(action);
+                               action.actionStatus = schema.CompletedActionStatus;
+                               const changes = RDFSerializer.serializeToChangeLog(action);
+                               store.additions = changes.additions;
+                               store.deletions = changes.deletions;
+                               this.service.logger('debug', `Updating action status to completed for: ${object}`);
+                               return this.solidService.saveDataset(this.solidService.session, object, store);
                             }).catch((err) => {
                                 this.service.logger('error', `Failed to store value: ${err.message}`);
                             });
@@ -301,22 +310,42 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     this.solidService.session,
                 );
             }).then(() => {
+                // Create the nodes and data store
+                this.service.logger('debug', `Creating nodes store at ${nodesUri}`);
+                this.service.logger('debug', `Creating data store at ${dataUri}`);
+                return Promise.all([
+                    this.solidService.saveDataset(this.solidService.session, nodesUri, this.solidService.createDataset()),
+                    this.solidService.saveDataset(this.solidService.session, dataUri, this.solidService.createDataset())
+                ]);
+            }).then(() => {
+                this.service.logger('debug', `Setting access rights for ${nodesUri}`);
+                this.service.logger('debug', `Setting access rights for ${dataUri}`);
+                return Promise.all([
+                    this.solidService.setAccess(
+                        nodesUri,
+                        {
+                            read: true,
+                            public: true,
+                            group: true
+                        },
+                        foaf.Agent,
+                        this.solidService.session,
+                    ), this.solidService.setAccess(
+                        dataUri,
+                        {
+                            read: true,
+                            public: true,
+                            group: true
+                        },
+                        foaf.Agent,
+                        this.solidService.session,
+                    )
+                ]);
+            }).then(() => {
                 resolve(node);
             }).catch(err => {
                 reject(err);
             });
-        });
-    }
-
-    remoteStore(uri: IriString, key: number, values: string[]): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.solidService
-                .getDatasetStore(this.solidService.session, uri)
-                .then((store) => {
-                    console.log(store, key, values);
-                    resolve();
-                })
-                .catch(reject);
         });
     }
 }

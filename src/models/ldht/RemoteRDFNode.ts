@@ -163,7 +163,7 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
                 setTimeout(() => {
                     clearInterval(interval);
                     reject(new Error("Action timed out"));
-                }, action.timeout ?? 10000);
+                }, action.timeout ?? 30000);
             }).catch(reject);
         });
     }

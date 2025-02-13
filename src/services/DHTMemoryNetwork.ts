@@ -124,6 +124,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
                     if (targetNode.length === 0) {
                         throw new Error('No nodes found');
                     }
+                    this.service.logger('info', `Storing value ${value} in node ${targetNode[0].nodeID}`);
                     return targetNode[0].store(key, value);
                 })
                 .then(() => {

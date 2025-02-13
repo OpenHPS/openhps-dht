@@ -67,7 +67,11 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 .storeLocal(key, value)
                 .then(() => {
                     // Store in solid storage
-                    return this.network.remoteStore(this.uri, key, Array.isArray(value) ? value : [value]);
+                    const service = this.network.solidService;
+                    const session = service.session;
+                    return service.getDatasetStore(session, this.uri);
+                }).then((store) => {
+                    const data =  Array.isArray(value) ? value : [value];
                 })
                 .then(resolve)
                 .catch(reject);
