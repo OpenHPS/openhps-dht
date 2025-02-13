@@ -55,7 +55,7 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
         });
     }
 
-    store(key: number, value: string | string[]): Promise<void> {
+    store(key: number, value: string | string[], visitedNodes?: Set<NodeID>, maxHops?: number): Promise<void> {
         return new Promise((resolve, reject) => {
             // Send a store action to another node
             const action = new LDHTStoreValueAction();

@@ -295,6 +295,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     store.addQuads(quads);
                     return this.solidService.saveDataset(this.solidService.session, nodeUrl, store)
                 } else {
+                    node.network = this;
                     resolve(node);
                 }
             }).then(() => {

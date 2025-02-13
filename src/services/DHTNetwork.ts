@@ -6,6 +6,7 @@ import { DHTService } from './DHTService';
  * Distributed Hash Table Network
  */
 export abstract class DHTNetwork {
+    public nodes: Map<NodeID, DHTNode> = new Map();
     private _node: LocalDHTNode;
     private _service: DHTService;
     /**

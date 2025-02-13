@@ -52,8 +52,10 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
      * Store a value in the node. This function is executed on the target node.
      * @param {number} key Hashed key
      * @param {string | string[]} value Value to store
+     * @param {Set<NodeID>} visitedNodes Visited nodes
+     * @param {number} maxHops Maximum hops
      */
-    abstract store(key: number, value: string | string[]): Promise<void>;
+    abstract store(key: number, value: string | string[], visitedNodes?: Set<NodeID>, maxHops?: number): Promise<void>;
 
     /**
      * Check if the node has a value.

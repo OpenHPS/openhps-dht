@@ -2,7 +2,6 @@ import { DHTNode, LocalDHTNode, NodeID, RemoteDHTNode } from '../models';
 import { DHTNetwork } from './DHTNetwork';
 
 export class DHTMemoryNetwork extends DHTNetwork {
-    public readonly nodes: Map<NodeID, DHTNode> = new Map();
     protected nodeHandler: RemoteDHTNode;
 
     constructor(collection: string = 'default', nodes?: Map<NodeID, DHTNode>) {
@@ -20,6 +19,11 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     addNode(node: DHTNode): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Skip if the node is already in the network
+            if (this.nodes.has(node.nodeID)) {
+                resolve();
+                return;
+            }
             // Set reference to network
             node = this.nodeHandler ? new Proxy(node, this.nodeHandler) : node;
             node.network = this;
@@ -54,10 +58,13 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     findNodeById(nodeID: NodeID): Promise<DHTNode> {
         return new Promise((resolve, reject) => {
-            if (this.nodes.has(nodeID)) {
+            if (this.node.nodeID === nodeID) {
+                resolve(this.node);
+            } else if (this.nodes.has(nodeID)) {
                 resolve(this.nodes.get(nodeID));
             } else {
-                reject(new Error('Node not found'));
+                this.service.logger('error', `Node #${nodeID} not found`);
+                reject(new Error(`Node #${nodeID} not found`));
             }
         });
     }
@@ -65,7 +72,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     findNodesByKey(key: number, count: number = 5): Promise<DHTNode[]> {
         return new Promise((resolve, reject) => {
             Promise.all(
-                Array.from(this.nodes.values())
+                [this.node, ...Array.from(this.nodes.values())]
                     .map((node) => node.nodeID)
                     .sort((a, b) => this.xorDistance(a, key) - this.xorDistance(b, key))
                     .slice(0, count)
