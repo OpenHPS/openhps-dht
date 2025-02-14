@@ -10,6 +10,7 @@ describe('RDFNode', () => {
             const node = new LocalRDFNode(1, undefined);
             node.uri = 'https://solid.maximvdw.be/nodes/poso/node.ttl';
             node.collection = 'https://solid.maximvdw.be/nodes/poso/';
+            node.dataUri = 'https://solid.maximvdw.be/nodes/poso/data.ttl';
             node.actions = [
                 new LDHTPingAction().setTarget(actionsUrl as IriString),
                 new LDHTAddNodeAction().setTarget(actionsUrl as IriString),
@@ -22,6 +23,7 @@ describe('RDFNode', () => {
                 format: 'text/turtle'
             }).then((data) => {
                 // Deserialize
+                console.log(data);
                 return RDFSerializer.deserializeFromString(node.uri, data);
             }).then((deserializedNode: LocalRDFNode) => {
                 done();

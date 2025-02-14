@@ -49,10 +49,16 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         rdf: {
             predicate: tree.relation,
             serializer: (value: LocalRDFNode) => {
+                console.log('serializing', value);
+                if (!value.dataUri) {
+                    return undefined;
+                }
+                console.log('serializing', value.dataUri);  
                 // Create a TREE relation referencing the data
                 return RDFBuilder.blankNode()
                     .add(rdf.type, tree.Relation)
                     .add(tree.node, value.dataUri)
+                    .build();
             },
             deserializer: (value: Thing) => {
                 const relation = value.predicates[tree.relation];
