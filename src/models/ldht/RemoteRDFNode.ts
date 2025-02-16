@@ -75,15 +75,19 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
     hasValue(key: number): Promise<boolean> {
         return new Promise((resolve, reject) => {
             // Access the online sources to determine if the collection contains the data
-            console.log("checking if has value");
+            this.fetchRemoteNode().then((node) => {
+                return node.hasValue(key);
+            }).then(resolve).catch(reject);
         });
     }
 
     findValue(key: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
+            const service = this.network.solidService;
+            const session = service.session;
             // Find the key in the collection online
             this.fetchRemoteNode().then((node) => {
-                console.log(node);
+                console.log("Finding value", key, node);
             }).catch(reject);
         });
     }
@@ -95,6 +99,8 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
                     return RDFSerializer.deserializeFromStore(DataFactory.namedNode(this.uri), store);
                 }).then((data: LocalRDFNode) => {
                     this.actions = data.actions;
+                    return data.fetch();
+                }).then((data: LocalRDFNode) => {
                     resolve(data);
                 })
                 .catch(reject);

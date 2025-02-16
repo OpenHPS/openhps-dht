@@ -23,6 +23,10 @@ import { LDHTEntry } from './LDHTEntry';
                 value: value.uri,
             } as Partial<Thing>;
         },
+        deserializer: (value: Thing, instance) => {
+            instance.uri = value.value as IriString;
+            return instance;
+        }
     },
 })
 export class LocalRDFNode extends LocalDHTNode implements RDFNode {
@@ -48,23 +52,20 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     @SerializableMember({
         rdf: {
             predicate: tree.relation,
-            serializer: (value: LocalRDFNode) => {
-                console.log('serializing', value);
-                if (!value.dataUri) {
+            serializer: (value: IriString) => {
+                if (!value) {
                     return undefined;
                 }
-                console.log('serializing', value.dataUri);  
                 // Create a TREE relation referencing the data
                 return RDFBuilder.blankNode()
                     .add(rdf.type, tree.Relation)
-                    .add(tree.node, value.dataUri)
+                    .add(tree.node, value)
                     .build();
             },
             deserializer: (value: Thing) => {
-                const relation = value.predicates[tree.relation];
-                if (relation) {
-                    console.log('relation', relation[0]);
-                    return relation[0];
+                const node = value.predicates[tree.node];
+                if (node) {
+                    return node[0].value;
                 }
                 return undefined;
             },
@@ -74,20 +75,54 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     nodesUri: IriString;
     network: DHTRDFNetwork;
 
+    /**
+     * Fetch neigbouring nodes and data
+     * 
+     * @returns 
+     */
+    fetch(): Promise<this> {
+        return new Promise((resolve, reject) => {
+            const service = this.network.solidService;
+            const session = service.session;     
+            service.getDatasetStore(session, this.dataUri).then((store) => {
+                return RDFSerializer.deserializeFromStore(undefined, store);
+            }).then((collection: Collection) => {
+                this.collectionObject = collection;
+                return service.getDatasetStore(session, this.nodesUri);
+            }).then((store) => {
+                return RDFSerializer.deserializeFromStore(undefined, store);
+            }).then((collection: Collection) => {
+                resolve(this);
+            }).catch(reject);
+        });
+    }
+
     protected storeLocal(key: number, value: string | string[]): Promise<void> {
         return new Promise((resolve, reject) => {
+            const service = this.network.solidService;
+            const session = service.session;
             super
                 .storeLocal(key, value)
                 .then(() => {
                     // Store in solid storage
-                    const service = this.network.solidService;
-                    const session = service.session;
-                    return service.getDatasetStore(session, this.uri);
+                    return service.getDatasetStore(session, this.dataUri);
                 }).then((store) => {
+                    const collection: Collection = createChangeLog(RDFSerializer.deserializeFromStore(undefined, store) ?? new Collection(this.dataUri));
                     const data =  Array.isArray(value) ? value : [value];
-                    console.log('storing', key, data, this.dataUri);
+                    data.forEach((v) => {
+                        const entry = new LDHTEntry();
+                        entry.identifier = key;
+                        entry.value = v as IriString;
+                        collection.members.push(entry);
+                    });
+                    const changelog = RDFSerializer.serializeToChangeLog(collection);
+                    store.addQuads(changelog.additions);
+                    store.removeQuads(changelog.deletions);
+                    return service.saveDataset(session, this.dataUri, store);
                 })
-                .then(resolve)
+                .then(() => {
+                    resolve();
+                })
                 .catch(reject);
         });
     }
@@ -106,8 +141,24 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         return collection;
     }
 
+    set collectionObject(collection: Collection) {
+        if (collection && collection.members) {
+            collection.members.forEach((entry: LDHTEntry) => {
+                const key = entry.identifier;
+                const value = entry.value;
+                if (!this.dataStore.has(key)) {
+                    this.dataStore.set(key, []);
+                }
+                this.dataStore.get(key)!.push(value);
+            });
+        }
+    }
+
     findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
-        return new Promise((resolve, reject) => {});
+        return new Promise((resolve, reject) => {
+            console.log("Finding value", key, this.dataStore);
+            resolve([]);
+        });
     }
 
     ping(): Promise<void> {

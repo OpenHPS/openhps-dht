@@ -23,7 +23,6 @@ describe('RDFNode', () => {
                 format: 'text/turtle'
             }).then((data) => {
                 // Deserialize
-                console.log(data);
                 return RDFSerializer.deserializeFromString(node.uri, data);
             }).then((deserializedNode: LocalRDFNode) => {
                 done();

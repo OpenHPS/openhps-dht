@@ -5073,10 +5073,10 @@
     robust-predicates "^3.0.2"
     wkt "^0.1.1"
 
-"@openhps/rdf@1.1.0-alpha.4":
-  version "1.1.0-alpha.4"
-  resolved "https://registry.yarnpkg.com/@openhps/rdf/-/rdf-1.1.0-alpha.4.tgz#38d249b7118a35d28ed143b8946d728de0b94fbc"
-  integrity sha512-6+iTRko9JD38DXl4efsWZEgJXbCmw91QiA1vPg3KRTQm5mYTUEW7FNJurB3tNqHawEUJ0DpscbdUdhsNhyocWQ==
+"@openhps/rdf@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@openhps/rdf/-/rdf-1.1.1.tgz#3e2da818f4249c6d3851d8f3eafceda561bf298c"
+  integrity sha512-uulj1eSEAexDKHEo0qzrPRjeF3cKUlKE4eSEvcpYi7EhLJMqScM0FX4o02zGthnbLbL5RTfCBWRThOGpw6tQzg==
   dependencies:
     "@comunica/query-sparql" "^4.0.2"
     "@inquirer/prompts" "^5.1.0"
@@ -5104,10 +5104,10 @@
     ml-levenberg-marquardt "^4.1.3"
     ts-md5 "^1.3.1"
 
-"@openhps/solid@1.0.1-alpha.3":
-  version "1.0.1-alpha.3"
-  resolved "https://registry.yarnpkg.com/@openhps/solid/-/solid-1.0.1-alpha.3.tgz#ae5ca6d72387f77012b65bc71ca6927490937111"
-  integrity sha512-jaaRFz/Zcn0qjTbJXzcyS9e7sHHGUZWRi2yCIA79N+CzvRdqrGLtB8jkGpdcxl4y0HGWs40HcdF9EOFPh6l/RQ==
+"@openhps/solid@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@openhps/solid/-/solid-1.0.2.tgz#bfc4eb78d80c6c84a9dbeab058df16cee9f760ea"
+  integrity sha512-mWzJgJ1LbyHyvVg8Vh2NU05GxP4bmTZAXSeo6O3J73bKWtYfBYqpukwj1HBIAwBWg+wrwuFNR56g+TusP5+55g==
   dependencies:
     "@comunica/query-sparql-link-traversal-solid" "^0.6.1"
     "@comunica/query-sparql-solid" "^4.0.2"

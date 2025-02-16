@@ -296,7 +296,9 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                     return this.solidService.saveDataset(this.solidService.session, nodeUrl, store)
                 } else {
                     node.network = this;
-                    resolve(node);
+                    node.fetch().then(() => {
+                        resolve(node);
+                    }).catch(reject);
                 }
             }).then(() => {
                 this.service.logger('debug', `Setting access rights for ${nodeUrl}`);
@@ -315,9 +317,20 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                 this.service.logger('debug', `Creating nodes store at ${nodesUri}`);
                 this.service.logger('debug', `Creating data store at ${dataUri}`);
                 return Promise.all([
-                    this.solidService.saveDataset(this.solidService.session, nodesUri, this.solidService.createDataset()),
-                    this.solidService.saveDataset(this.solidService.session, dataUri, this.solidService.createDataset())
+                    this.solidService.getDataset(this.solidService.session, nodesUri),
+                    this.solidService.getDataset(this.solidService.session, dataUri)
                 ]);
+            }).then((datasets) => {
+                const nodesExists = datasets[0] !== undefined;
+                const dataExists = datasets[1] !== undefined;
+                const promises = [];
+                if (!nodesExists) {
+                    promises.push(this.solidService.saveDataset(this.solidService.session, nodesUri, this.solidService.createDataset()));
+                }
+                if (!dataExists) {
+                    promises.push(this.solidService.saveDataset(this.solidService.session, dataUri, this.solidService.createDataset()));
+                }
+                return Promise.all(promises);
             }).then(() => {
                 this.service.logger('debug', `Setting access rights for ${nodesUri}`);
                 this.service.logger('debug', `Setting access rights for ${dataUri}`);
