@@ -1,6 +1,6 @@
 import { SerializableMember, SerializableObject } from '@openhps/core';
 import { ldht } from '../../terms';
-import { dcterms, IriString, schema, SerializableThing } from '@openhps/rdf';
+import { DataFactory, dcterms, IriString, schema, SerializableThing } from '@openhps/rdf';
 
 @SerializableObject({
     rdf: {

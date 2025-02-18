@@ -7,7 +7,7 @@ import {
 } from '@openhps/core';
 import { LocalDHTNode } from '../LocalDHTNode';
 import { ldht } from '../../terms';
-import { IriString, RDFBuilder, RDFSerializer, SerializableThing, Store, Thing, rdf, schema, tree } from '@openhps/rdf';
+import { DataFactory, IriString, RDFBuilder, RDFSerializer, SerializableThing, Store, Thing, rdf, schema, tree } from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RDFNode } from './RDFNode';
 import { DHTRDFNetwork } from '../../services';
@@ -72,6 +72,20 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         }
     })
     dataUri: IriString;
+    @SerializableMember({
+        rdf: {
+            predicate: ldht.nodes,
+            serializer: (value: IriString) => {
+                if (!value) {
+                    return undefined;
+                }
+                return DataFactory.namedNode(value);
+            },
+            deserializer: (value: IriString) => {
+                return value;
+            }
+        }
+    })
     nodesUri: IriString;
     network: DHTRDFNetwork;
 
@@ -118,6 +132,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                     const changelog = RDFSerializer.serializeToChangeLog(collection);
                     store.addQuads(changelog.additions);
                     store.removeQuads(changelog.deletions);
+                    console.log("Saving data to", this.dataUri, changelog.additions);
                     return service.saveDataset(session, this.dataUri, store);
                 })
                 .then(() => {
