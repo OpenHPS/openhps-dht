@@ -5073,10 +5073,10 @@
     robust-predicates "^3.0.2"
     wkt "^0.1.1"
 
-"@openhps/rdf@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@openhps/rdf/-/rdf-1.1.1.tgz#3e2da818f4249c6d3851d8f3eafceda561bf298c"
-  integrity sha512-uulj1eSEAexDKHEo0qzrPRjeF3cKUlKE4eSEvcpYi7EhLJMqScM0FX4o02zGthnbLbL5RTfCBWRThOGpw6tQzg==
+"@openhps/rdf@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@openhps/rdf/-/rdf-1.1.2.tgz#3be55e839999e02b4beaa21ac9beb9a7478309d6"
+  integrity sha512-9cEAaYzBGFHTEpP5FkQS6Nl0Xlr1lV0d98FJ+wC0lvJin/45GTQH+9SkE87om/K6l3csJWnKwJFZb2POAkcjZg==
   dependencies:
     "@comunica/query-sparql" "^4.0.2"
     "@inquirer/prompts" "^5.1.0"

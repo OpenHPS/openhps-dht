@@ -171,8 +171,9 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
 
     findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            console.log("Finding value", key, this.dataStore);
-            resolve([]);
+            super.findValue(key, visitedNodes, maxHops).then((values) => {
+                resolve(values);
+            }).catch(reject);
         });
     }
 

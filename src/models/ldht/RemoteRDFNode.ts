@@ -83,11 +83,12 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
     findValue(key: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            const service = this.network.solidService;
-            const session = service.session;
             // Find the key in the collection online
             this.fetchRemoteNode().then((node) => {
                 console.log("Finding value", key, node);
+                return node.findValue(key);
+            }).then((values) => {
+                resolve(values);
             }).catch(reject);
         });
     }
