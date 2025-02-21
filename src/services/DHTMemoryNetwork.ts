@@ -20,26 +20,39 @@ export class DHTMemoryNetwork extends DHTNetwork {
     addNode(node: DHTNode): Promise<void> {
         return new Promise((resolve, reject) => {
             // Skip if the node is already in the network
-            if (this.nodes.has(node.nodeID)) {
+            if (this.nodes.has(node.nodeID) || node.nodeID === this.node.nodeID) {
                 resolve();
                 return;
+            } else if (node.nodeID === undefined) {
+                throw new Error('Node ID is undefined');   
             }
+
             // Set reference to network
             node = this.nodeHandler ? new Proxy(node, this.nodeHandler) : node;
             node.network = this;
+
             // Add node locally
             this.nodes.set(node.nodeID, node);
-            
-            Promise.all(
-                Array.from(this.nodes.values()).map((otherNode) => {
-                    return Promise.all([
-                        // Add the new node to the other node
-                        otherNode.addNode(node.nodeID), 
-                        // Add the other node to the new node
-                        node.addNode(otherNode.nodeID)
-                    ]);
-                }),
-            )
+            this.service.logger('info', `Adding node #${node.nodeID} to the network [#${this.node.nodeID}] (total: ${this.nodes.size})`);
+
+            // Avoid circular dependencies
+            const timeout = new Promise<void>((resolve) => setTimeout(() => { resolve(); }, 5000));
+            Promise.race([
+                Promise.all(
+                    Array.from(this.nodes.values()).map((otherNode) => {
+                        if (otherNode.nodeID === node.nodeID) {
+                            return Promise.resolve();
+                        }
+                        return Promise.all([
+                            // Add the new node to the other node
+                            otherNode.addNode(node.nodeID), 
+                            // Add the other node to the new node
+                            node.addNode(otherNode.nodeID)
+                        ]);
+                    }),
+                ),
+                timeout
+            ])
                 .then(() => resolve())
                 .catch(reject);
         });
@@ -58,9 +71,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     findNodeById(nodeID: NodeID): Promise<DHTNode> {
         return new Promise((resolve, reject) => {
-            if (this.node.nodeID === nodeID) {
-                resolve(this.node);
-            } else if (this.nodes.has(nodeID)) {
+            if (this.nodes.has(nodeID)) {
                 resolve(this.nodes.get(nodeID));
             } else {
                 this.service.logger('error', `Node #${nodeID} not found`);
@@ -72,7 +83,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     findNodesByKey(key: number, count: number = 5): Promise<DHTNode[]> {
         return new Promise((resolve, reject) => {
             Promise.all(
-                [this.node, ...Array.from(this.nodes.values())]
+                Array.from(this.nodes.values())
                     .map((node) => node.nodeID)
                     .sort((a, b) => this.xorDistance(a, key) - this.xorDistance(b, key))
                     .slice(0, count)
@@ -131,7 +142,11 @@ export class DHTMemoryNetwork extends DHTNetwork {
                     if (targetNode.length === 0) {
                         throw new Error('No nodes found');
                     }
-                    this.service.logger('info', `Storing value ${value} in node ${targetNode[0].nodeID}`);
+                    if (targetNode[0].nodeID === this.node.nodeID) {
+                        this.service.logger('info', `Storing value '${value}' locally`);
+                    } else {
+                        this.service.logger('info', `Storing value '${value}' in node #${targetNode[0].nodeID}`);
+                    }
                     return targetNode[0].store(key, value);
                 })
                 .then(() => {

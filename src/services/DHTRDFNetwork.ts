@@ -127,6 +127,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                         // Add a node
                         // Fetch the remote node first
                         this.fetchRemoteNode(action.object).then((node) => {
+                            // Note: possible race condition if nodes are waiting for each other
                             return this.addNode(node);
                         }).then(() => {
                             // Set action completed
@@ -249,6 +250,23 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                 .catch(err => {
                     reject(err);
                 });
+        });
+    }
+
+    storeValue(key: number, value: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            super.storeValue(key, value).then(() => {
+                resolve();
+            }).catch(reject);
+        });
+    }
+
+    
+    findValue(key: number): Promise<string[]> {
+        return new Promise((resolve, reject) => {
+            super.findValue(key).then((values) => {
+                resolve(values);
+            }).catch(reject);
         });
     }
 

@@ -99,14 +99,32 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
             const service = this.network.solidService;
             const session = service.session;     
             service.getDatasetStore(session, this.dataUri).then((store) => {
+                console.log("Store", store);
                 return RDFSerializer.deserializeFromStore(undefined, store);
             }).then((collection: Collection) => {
+                console.log("Collection", collection);
+                // Set data
                 this.collectionObject = collection;
                 return service.getDatasetStore(session, this.nodesUri);
             }).then((store) => {
                 return RDFSerializer.deserializeFromStore(undefined, store);
             }).then((collection: Collection) => {
+                // Set nodes
+                console.log("Collection nodes", collection);
                 resolve(this);
+            }).catch(reject);
+        });
+    }
+
+    store(
+        key: number,
+        value: string | string[],
+        visitedNodes: Set<NodeID> = new Set(),
+        maxHops: number = 0,
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            super.store(key, value, visitedNodes, maxHops).then(() => {
+                resolve();
             }).catch(reject);
         });
     }
@@ -132,7 +150,6 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                     const changelog = RDFSerializer.serializeToChangeLog(collection);
                     store.addQuads(changelog.additions);
                     store.removeQuads(changelog.deletions);
-                    console.log("Saving data to", this.dataUri, changelog.additions);
                     return service.saveDataset(session, this.dataUri, store);
                 })
                 .then(() => {

@@ -65,6 +65,7 @@ export abstract class DHTNetwork {
         return new Promise((resolve, reject) => {
             this.createLocalNode(nodeID)
                 .then((node) => {
+                    this.nodes.set(node.nodeID, node);
                     this.node = node;
                     resolve();
                 })

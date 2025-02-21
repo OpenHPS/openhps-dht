@@ -1,6 +1,7 @@
 import { NumberType, SerializableMapMember, SerializableMember, SerializableObject } from '@openhps/core';
 import { DHTNode, NodeID } from './DHTNode';
 import { DHTNetwork } from '../services/DHTNetwork';
+import { RDFSerializer } from '@openhps/rdf';
 
 const K = 20;
 
@@ -25,6 +26,10 @@ export class LocalDHTNode implements DHTNode {
         this.dataStore = new Map();
         this.buckets = new Map();
         this.network = network;
+    }
+
+    clone(): DHTNode {
+        return RDFSerializer.deserialize(RDFSerializer.serialize(this));
     }
 
     protected xorDistance(a: NodeID, b: NodeID): number {

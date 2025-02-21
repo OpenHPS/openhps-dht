@@ -1,3 +1,4 @@
+import { RDFSerializer } from '@openhps/rdf';
 import { DHTNetwork } from '../services';
 import { DHTNode, NodeID } from './DHTNode';
 
@@ -7,9 +8,18 @@ import { DHTNode, NodeID } from './DHTNode';
 export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
     abstract network: DHTNetwork;
     collection: string;
-    nodeID: number;
+    nodeID: number = undefined;
 
-    get?(target: DHTNode, p: PropertyKey, receiver: any): any {
+    set?(target: DHTNode, p: PropertyKey, value: any): boolean {
+        if (p === 'network') {
+            target.network = value;
+            this.network = value;
+            return true;
+        }
+        return true;
+    }
+
+    get?(target: DHTNode, p: PropertyKey, receiver: RemoteDHTNode): any {
         switch (p) {
             case 'addNode':
                 return this.addNode.bind(receiver);
@@ -32,6 +42,10 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
                     return targetProperty;
                 }
         }
+    }
+
+    clone(): DHTNode {
+        return RDFSerializer.deserialize(RDFSerializer.serialize(this), RemoteDHTNode);
     }
 
     /**

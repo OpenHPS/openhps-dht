@@ -1,10 +1,9 @@
 import 'mocha';
 import { expect } from 'chai';
-import { DHTRDFNetwork, DHTService, LDHTAddNodeAction, LDHTPingAction, LocalRDFNode } from '../../src';
+import { DHTRDFNetwork, DHTService } from '../../src';
 import { SolidClientService } from '@openhps/solid';
 import { generate } from '../utils/secret';
 import { Model, ModelBuilder } from '@openhps/core';
-import { DataFactory, RDFSerializer } from '@openhps/rdf';
 
 describe('DHTRDFService', () => {
     let services: DHTService[] = [];
@@ -85,8 +84,9 @@ describe('DHTRDFService', () => {
     });
 
     describe('addPositioningSystem()', () => {
-        before((done) => {
-            Promise.all([services[0].addNode(services[1].node), services[0].addNode(services[2].node)])
+        before(function (done) {
+            this.timeout(30000);
+            Promise.all([services[0].addNode(services[1].node.clone()), services[0].addNode(services[2].node.clone())])
                 .then(() => {
                     done();
                 })
@@ -117,7 +117,7 @@ describe('DHTRDFService', () => {
 
     describe('findPositioningSystems()', () => {
         before((done) => {
-            Promise.all([services[0].addNode(services[1].node), services[0].addNode(services[2].node)])
+            Promise.all([services[0].addNode(services[1].node.clone()), services[0].addNode(services[2].node.clone())])
                 .then(() => {
                     return Promise.all([
                         services[0].addPositioningSystem('GPS2', 50.82057996247597, 4.39222274282769, 5),

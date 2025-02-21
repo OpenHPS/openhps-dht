@@ -52,4 +52,6 @@ export interface DHTNode {
      * Ping the node and propagate the ping to other nodes.
      */
     ping(): Promise<void>;
+
+    clone(): DHTNode;
 }

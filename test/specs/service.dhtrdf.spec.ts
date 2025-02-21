@@ -1,10 +1,23 @@
 import 'mocha';
 import { expect } from 'chai';
-import { LDHTAddNodeAction, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode } from '../../src';
+import { LDHTAddNodeAction, LDHTEntry, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode } from '../../src';
 import { DataFactory, IriString, RDFSerializer } from '@openhps/rdf';
 
 describe('RDFNode', () => {
     describe('LocalRDFNode', () => {
+        it('should serialize an entry', (done) => {
+            const entry = new LDHTEntry();
+            entry.identifier = 1;
+            entry.value = 'test' as any;
+            const store = RDFSerializer.serializeToStore(entry);
+            RDFSerializer.stringify(store, {
+                format: 'text/turtle'
+            }).then((data) => {
+                // console.log(data);
+                done();
+            }).catch(done);
+        });
+
         it('should serialize', (done) => {
             const actionsUrl = 'https://solid.maximvdw.be/nodes/poso/actions/';
             const node = new LocalRDFNode(1, undefined);
@@ -17,12 +30,15 @@ describe('RDFNode', () => {
                 new LDHTRemoveNodeAction().setTarget(actionsUrl as IriString),
                 new LDHTStoreValueAction().setTarget(actionsUrl as IriString),
             ];
+            // Add dummy data
+            node.dataStore.set(123, ['test', 'test123']);
             const store = RDFSerializer.serializeToStore(node);
             store.addQuads(RDFSerializer.serializeToQuads(node.collectionObject));
             RDFSerializer.stringify(store, {
                 format: 'text/turtle'
             }).then((data) => {
                 // Deserialize
+                console.log(data);
                 return RDFSerializer.deserializeFromString(node.uri, data);
             }).then((deserializedNode: LocalRDFNode) => {
                 done();
