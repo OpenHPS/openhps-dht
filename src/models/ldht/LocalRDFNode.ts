@@ -110,7 +110,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     static fromURI(uri: IriString): LocalRDFNode {
         const node = new LocalRDFNode();
         node.uri = uri;
-        return
+        return;
     }
 
     /**

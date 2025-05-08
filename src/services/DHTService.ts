@@ -7,7 +7,10 @@ import { IriString } from '@openhps/rdf';
 
 const GRID_SIZE = 10; // 10 km
 
-export type Boundary = GeographicalPosition[] | RectangleCornerBoundary<GeographicalPosition> | RectangleRotationBoundary<GeographicalPosition>;
+export type Boundary =
+    | GeographicalPosition[]
+    | RectangleCornerBoundary<GeographicalPosition>
+    | RectangleRotationBoundary<GeographicalPosition>;
 
 /**
  * Distributed Hash Table Service
@@ -35,10 +38,9 @@ export class DHTService extends Service {
         this.system = system;
         return this;
     }
-    
+
     /**
      * Set the boundary of the positioning systems
-     * 
      * @param boundary Positioning system boundary
      * @returns {DHTService} DHT service instance
      */

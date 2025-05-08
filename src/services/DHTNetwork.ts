@@ -63,8 +63,7 @@ export abstract class DHTNetwork {
 
     /**
      * Set the local node
-     *
-     * @param {LocalDHTNode} node Node 
+     * @param {LocalDHTNode} node Node
      */
     setLocalNode(node: LocalDHTNode): this {
         this._node = node;

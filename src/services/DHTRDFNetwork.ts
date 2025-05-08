@@ -24,7 +24,7 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
     protected collectionInstance: Collection;
     protected podUrl: IriString;
     protected subscription: DatasetSubscription;
-    
+
     constructor(collectionUri?: IriString, collectionAlias?: string) {
         super(collectionAlias);
         this.collectionInstance = new Collection(collectionUri);
@@ -210,7 +210,8 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
                 // Node already exists
                 const localNode: LocalRDFNode = this.node as LocalRDFNode;
                 this.nodeID = localNode.nodeID;
-                localNode.fetch()
+                localNode
+                    .fetch()
                     .then(() => {
                         resolve(localNode);
                     })
