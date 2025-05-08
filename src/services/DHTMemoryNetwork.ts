@@ -24,7 +24,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
                 resolve();
                 return;
             } else if (node.nodeID === undefined) {
-                throw new Error('Node ID is undefined');   
+                throw new Error('Node ID is undefined');
             }
 
             // Set reference to network
@@ -33,10 +33,17 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
             // Add node locally
             this.nodes.set(node.nodeID, node);
-            this.service.logger('info', `Adding node #${node.nodeID} to the network [#${this.node.nodeID}] (total: ${this.nodes.size})`);
+            this.service.logger(
+                'info',
+                `Adding node #${node.nodeID} to the network [#${this.node.nodeID}] (total: ${this.nodes.size})`,
+            );
 
             // Avoid circular dependencies
-            const timeout = new Promise<void>((resolve) => setTimeout(() => { resolve(); }, 5000));
+            const timeout = new Promise<void>((resolve) =>
+                setTimeout(() => {
+                    resolve();
+                }, 5000),
+            );
             Promise.race([
                 Promise.all(
                     Array.from(this.nodes.values()).map((otherNode) => {
@@ -45,15 +52,26 @@ export class DHTMemoryNetwork extends DHTNetwork {
                         }
                         return Promise.all([
                             // Add the new node to the other node
-                            otherNode.addNode(node.nodeID), 
-                            // Add the other node to the new node
-                            node.addNode(otherNode.nodeID)
+                            otherNode.addNode(node.nodeID),
                         ]);
                     }),
                 ),
-                timeout
+                timeout,
             ])
-                .then(() => resolve())
+                .then(() => {
+                    Promise.all(
+                        Array.from(this.nodes.values()).map((otherNode) => {
+                            if (otherNode.nodeID === node.nodeID) {
+                                return Promise.resolve();
+                            }
+                            return Promise.all([
+                                // Add the other node to the new node
+                                node.addNode(otherNode.nodeID),
+                            ]);
+                        }),
+                    );
+                    resolve();
+                })
                 .catch(reject);
         });
     }

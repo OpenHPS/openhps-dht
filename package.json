@@ -59,6 +59,7 @@
     "distributed hash table"
   ],
   "dependencies": {
+    "@openhps/geospatial": "^0.1.30",
     "node-fetch": "^3.3.2"
   },
   "peerDependencies": {

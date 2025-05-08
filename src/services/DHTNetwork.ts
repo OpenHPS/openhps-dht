@@ -9,6 +9,8 @@ export abstract class DHTNetwork {
     public nodes: Map<NodeID, DHTNode> = new Map();
     private _node: LocalDHTNode;
     private _service: DHTService;
+    protected model: Model;
+
     /**
      * Collection name identifying the network
      */
@@ -36,6 +38,10 @@ export abstract class DHTNetwork {
         return this.node.nodeID;
     }
 
+    set nodeID(nodeID: NodeID) {
+        this.node.nodeID = nodeID;
+    }
+
     /**
      * Get the service
      * @returns {DHTService} Service
@@ -56,12 +62,23 @@ export abstract class DHTNetwork {
     }
 
     /**
+     * Set the local node
+     *
+     * @param {LocalDHTNode} node Node 
+     */
+    setLocalNode(node: LocalDHTNode): this {
+        this._node = node;
+        return this;
+    }
+
+    /**
      * Initialize the network
      * @param nodeID Node identifier to use as the local node
-     * @param _model Model to use
+     * @param model Model to use
      * @returns {Promise<void>} Promise when the network is initialized
      */
-    initialize(nodeID: number, _model?: Model): Promise<void> {
+    initialize(nodeID: number, model?: Model): Promise<void> {
+        this.model = model;
         return new Promise((resolve, reject) => {
             this.createLocalNode(nodeID)
                 .then((node) => {

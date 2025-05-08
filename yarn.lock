@@ -5064,9 +5064,9 @@
     cubic-spline "^3.0.3"
     uuid "^10.0.0"
 
-"@openhps/geospatial@>=0.1.30":
+"@openhps/geospatial@>=0.1.30", "@openhps/geospatial@^0.1.30":
   version "0.1.30"
-  resolved "https://registry.npmjs.org/@openhps/geospatial/-/geospatial-0.1.30.tgz"
+  resolved "https://registry.yarnpkg.com/@openhps/geospatial/-/geospatial-0.1.30.tgz#11637bbbee113c1112fab7c4fdd8217ea8fa2653"
   integrity sha512-a+EppwlwtqdO4Ycihu0lX/tEatL3hOZurQJXMYn0XEJ0AnbsmbcDes3rX5O8pw6oeq9QFtlL1TcOIzeFBvtdiQ==
   dependencies:
     robust-point-in-polygon "^1.0.3"

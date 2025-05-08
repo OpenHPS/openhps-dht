@@ -7,11 +7,24 @@ import {
 } from '@openhps/core';
 import { LocalDHTNode } from '../LocalDHTNode';
 import { ldht } from '../../terms';
-import { DataFactory, IriString, RDFBuilder, RDFSerializer, SerializableThing, Store, Thing, rdf, schema, tree } from '@openhps/rdf';
+import {
+    DataFactory,
+    IriString,
+    NamedNode,
+    RDFBuilder,
+    RDFSerializer,
+    SerializableThing,
+    Store,
+    Thing,
+    rdf,
+    schema,
+    tree,
+} from '@openhps/rdf';
 import { NodeID } from '../DHTNode';
 import { RDFNode } from './RDFNode';
 import { DHTRDFNetwork } from '../../services';
-import { LDHTAction } from './LDHTAction';import { Collection } from '@openhps/solid';
+import { LDHTAction } from './LDHTAction';
+import { Collection } from '@openhps/solid';
 import { LDHTEntry } from './LDHTEntry';
 
 @SerializableObject({
@@ -26,7 +39,7 @@ import { LDHTEntry } from './LDHTEntry';
         deserializer: (value: Thing, instance) => {
             instance.uri = value.value as IriString;
             return instance;
-        }
+        },
     },
 })
 export class LocalRDFNode extends LocalDHTNode implements RDFNode {
@@ -57,10 +70,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                     return undefined;
                 }
                 // Create a TREE relation referencing the data
-                return RDFBuilder.blankNode()
-                    .add(rdf.type, tree.Relation)
-                    .add(tree.node, value)
-                    .build();
+                return RDFBuilder.blankNode().add(rdf.type, tree.Relation).add(tree.node, value).build();
             },
             deserializer: (value: Thing) => {
                 const node = value.predicates[tree.node];
@@ -69,7 +79,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 }
                 return undefined;
             },
-        }
+        },
     })
     dataUri: IriString;
     @SerializableMember({
@@ -81,38 +91,64 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 }
                 return DataFactory.namedNode(value);
             },
-            deserializer: (value: IriString) => {
-                return value;
-            }
-        }
+            deserializer: (value: NamedNode) => {
+                return value.value;
+            },
+        },
     })
     nodesUri: IriString;
     network: DHTRDFNetwork;
 
+    get collectionUri(): IriString {
+        return this.collection as IriString;
+    }
+
+    get nodesCollectionUri(): IriString {
+        return (this.collection + 'nodes/') as IriString;
+    }
+
+    static fromURI(uri: IriString): LocalRDFNode {
+        const node = new LocalRDFNode();
+        node.uri = uri;
+        return
+    }
+
     /**
      * Fetch neigbouring nodes and data
-     * 
-     * @returns 
+     * @returns
      */
     fetch(): Promise<this> {
         return new Promise((resolve, reject) => {
             const service = this.network.solidService;
-            const session = service.session;     
-            service.getDatasetStore(session, this.dataUri).then((store) => {
-                console.log("Store", store);
-                return RDFSerializer.deserializeFromStore(undefined, store);
-            }).then((collection: Collection) => {
-                console.log("Collection", collection);
-                // Set data
-                this.collectionObject = collection;
-                return service.getDatasetStore(session, this.nodesUri);
-            }).then((store) => {
-                return RDFSerializer.deserializeFromStore(undefined, store);
-            }).then((collection: Collection) => {
-                // Set nodes
-                console.log("Collection nodes", collection);
-                resolve(this);
-            }).catch(reject);
+            const session = service.session;
+            if (!this.dataUri) {
+                reject(new Error('Data URI is not set'));
+                return;
+            }
+            service
+                .getDatasetStore(session, this.dataUri)
+                .then((store) => {
+                    const collection: Collection = RDFSerializer.deserializeFromStore(null, store, Collection);
+                    // Set data
+                    this.collectionObject = collection;
+                    if (!this.nodesUri) {
+                        reject(new Error('Nodes URI is not set'));
+                        return;
+                    }
+                    return service.getDatasetStore(session, this.nodesUri);
+                })
+                .then((store) => {
+                    const collection: Collection = RDFSerializer.deserializeFromStore(null, store, Collection);
+                    // Set nodes
+                    collection.members.forEach((node: SerializableThing) => {
+                        const id = node.id;
+                        if (id) {
+                            // Add node to network
+                        }
+                    });
+                    resolve(this);
+                })
+                .catch(reject);
         });
     }
 
@@ -123,9 +159,12 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         maxHops: number = 0,
     ): Promise<void> {
         return new Promise((resolve, reject) => {
-            super.store(key, value, visitedNodes, maxHops).then(() => {
-                resolve();
-            }).catch(reject);
+            super
+                .store(key, value, visitedNodes, maxHops)
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
@@ -138,16 +177,31 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 .then(() => {
                     // Store in solid storage
                     return service.getDatasetStore(session, this.dataUri);
-                }).then((store) => {
-                    const collection: Collection = createChangeLog(RDFSerializer.deserializeFromStore(undefined, store) ?? new Collection(this.dataUri));
-                    const data =  Array.isArray(value) ? value : [value];
+                })
+                .then((store) => {
+                    const collection: Collection = createChangeLog(
+                        RDFSerializer.deserializeFromStore(undefined, store) ??
+                            new Collection(this.collection as IriString),
+                    );
+                    const data = Array.isArray(value) ? value : [value];
                     data.forEach((v) => {
                         const entry = new LDHTEntry();
                         entry.identifier = key;
                         entry.value = v as IriString;
-                        collection.members.push(entry);
+                        // Only add if it doesn't exist
+                        if (
+                            !collection.members.find(
+                                (m: LDHTEntry) => m.identifier === entry.identifier && m.value === entry.value,
+                            )
+                        ) {
+                            collection.members.push(entry);
+                        }
                     });
                     const changelog = RDFSerializer.serializeToChangeLog(collection);
+                    if (changelog.additions.length === 0 && changelog.deletions.length === 0) {
+                        resolve();
+                        return;
+                    }
                     store.addQuads(changelog.additions);
                     store.removeQuads(changelog.deletions);
                     return service.saveDataset(session, this.dataUri, store);
@@ -188,15 +242,20 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
 
     findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
-            super.findValue(key, visitedNodes, maxHops).then((values) => {
-                resolve(values);
-            }).catch(reject);
+            this.network.solidService.logger('debug', `Finding value for key ${key} locally in ${this.uri}`);
+            super
+                .findValue(key, visitedNodes, maxHops)
+                .then((values) => {
+                    resolve(values);
+                })
+                .catch(reject);
         });
     }
 
     ping(): Promise<void> {
-        return new Promise((resolve, reject) => {
-
+        return new Promise((resolve) => {
+            console.log('Pinging', this.nodeID);
+            resolve();
         });
     }
 
@@ -212,7 +271,8 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 .then(() => {
                     // Save the node to the network
                     return this.saveNodes();
-                }).then(() => {
+                })
+                .then(() => {
                     resolve();
                 })
                 .catch(reject);
@@ -231,7 +291,8 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 .then(() => {
                     // Save the node to the network
                     return this.saveNodes();
-                }).then(() => {
+                })
+                .then(() => {
                     resolve();
                 })
                 .catch(reject);
@@ -245,28 +306,33 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
             const service = this.network.solidService;
             const session = service.session;
             let nodesStore: Store = new Store();
-            service.getDatasetStore(session, uri).then((store) => {
-                nodesStore = store;
-                return RDFSerializer.deserializeFromStore(undefined, store);
-            }).then((collection: Collection) => {
-                if (!collection) {
-                    collection = new Collection(this.collection + '/nodes/' as IriString);
-                }
-                collection = createChangeLog(collection);
-                this.network.nodes.forEach((node: LocalRDFNode) => {
-                    if (node.nodeID === this.nodeID) {
-                        return;
+            service
+                .getDatasetStore(session, uri)
+                .then((store) => {
+                    nodesStore = store;
+                    return RDFSerializer.deserializeFromStore(undefined, store);
+                })
+                .then((collection: Collection) => {
+                    if (!collection) {
+                        collection = new Collection(this.nodesCollectionUri);
                     }
-                    collection.members.push(new SerializableThing(node.uri));
-                });
-                const changelog = RDFSerializer.serializeToChangeLog(collection);
-                service.logger('debug', `Saving nodes to ${uri}`);
-                nodesStore.addQuads(changelog.additions);
-                nodesStore.removeQuads(changelog.deletions);
-                return service.saveDataset(session, uri, nodesStore);
-            }).then(() => {
-                resolve();
-            }).catch(reject);
+                    collection = createChangeLog(collection);
+                    this.network.nodes.forEach((node: LocalRDFNode) => {
+                        if (node.nodeID === this.nodeID) {
+                            return;
+                        }
+                        collection.members.push(new SerializableThing(node.uri));
+                    });
+                    const changelog = RDFSerializer.serializeToChangeLog(collection);
+                    service.logger('debug', `Saving nodes to ${uri} with collection ${collection.id}`);
+                    nodesStore.addQuads(changelog.additions);
+                    nodesStore.removeQuads(changelog.deletions);
+                    return service.saveDataset(session, uri, nodesStore);
+                })
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 }

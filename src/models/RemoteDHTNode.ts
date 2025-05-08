@@ -33,7 +33,7 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
                 return this.findValue.bind(receiver);
             case 'ping':
                 return this.ping.bind(receiver);
-            default:
+            default: {
                 const targetProperty = Reflect.get(target, p, receiver);
                 const selfProperty = Reflect.get(this, p, receiver);
                 if (selfProperty) {
@@ -41,6 +41,7 @@ export abstract class RemoteDHTNode implements DHTNode, ProxyHandler<DHTNode> {
                 } else {
                     return targetProperty;
                 }
+            }
         }
     }
 

@@ -14,7 +14,7 @@ export abstract class LDHTAction extends SerializableThing {
         rdf: {
             predicate: ldht.timeout,
         },
-        numberType: NumberType.INTEGER
+        numberType: NumberType.INTEGER,
     })
     timeout?: number;
 

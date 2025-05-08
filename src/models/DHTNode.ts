@@ -1,4 +1,4 @@
-import { DHTNetwork } from "../services/DHTNetwork";
+import { DHTNetwork } from '../services/DHTNetwork';
 
 export type NodeID = number;
 
@@ -9,7 +9,7 @@ export interface DHTNode {
     nodeID: number;
     collection: string;
     network: DHTNetwork;
-    
+
     /**
      * Add a node to the network. This function is executed on the target node.
      * @param {NodeID} nodeID Node to add

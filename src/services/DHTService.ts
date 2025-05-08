@@ -1,15 +1,21 @@
-import { LengthUnit, Service } from '@openhps/core';
+import { GeographicalPosition, LengthUnit, Service } from '@openhps/core';
 import { DHTNode, NodeID } from '../models/DHTNode';
 import { DHTNetwork } from './DHTNetwork';
 import { DHTMemoryNetwork } from './DHTMemoryNetwork';
+import { RectangleCornerBoundary, RectangleRotationBoundary } from '@openhps/geospatial';
+import { IriString } from '@openhps/rdf';
 
 const GRID_SIZE = 10; // 10 km
+
+export type Boundary = GeographicalPosition[] | RectangleCornerBoundary<GeographicalPosition> | RectangleRotationBoundary<GeographicalPosition>;
 
 /**
  * Distributed Hash Table Service
  */
 export class DHTService extends Service {
     public network: DHTNetwork;
+    protected boundary: Boundary;
+    protected system: string | IriString;
 
     constructor(network: DHTNetwork = new DHTMemoryNetwork()) {
         super();
@@ -23,6 +29,25 @@ export class DHTService extends Service {
             const nodeID = this.hash(latitude, longitude)[0];
             return this.network.initialize(nodeID, this.model);
         });
+    }
+
+    setSystem(system: string | IriString): this {
+        this.system = system;
+        return this;
+    }
+    
+    /**
+     * Set the boundary of the positioning systems
+     * 
+     * @param boundary Positioning system boundary
+     * @returns {DHTService} DHT service instance
+     */
+    setBounds(bounds: GeographicalPosition[]): this;
+    setBounds(bounds: RectangleCornerBoundary<GeographicalPosition>): this;
+    setBounds(bounds: RectangleRotationBoundary<GeographicalPosition>): this;
+    setBounds(bounds: any): this {
+        this.boundary = bounds;
+        return this;
     }
 
     findNodeById(nodeID: NodeID): Promise<DHTNode> {
@@ -118,11 +143,15 @@ export class DHTService extends Service {
         // Get the accuracy in meters
         const accuracyMeters = accuracy && accuracyUnit ? accuracyUnit.convert(accuracy, LengthUnit.METER) : accuracy;
 
+        // Normalise the latitude and longitude
+        const latNorm = latitude + 90;
+        const lngNorm = longitude + 180;
+
         // Partition the globe into partitions
         const partition = GRID_SIZE / 111.132954; // km in degrees
         // Split the coordinates into partitions
-        const latPartition = Math.floor(latitude / partition);
-        const lonPartition = Math.floor(longitude / partition);
+        const latPartition = Math.floor(latNorm / partition);
+        const lonPartition = Math.floor(lngNorm / partition);
 
         // Verify that the accuracy is not too large for the partition
         // if yes, multiple keys will be returned for each partition the accuracy covers

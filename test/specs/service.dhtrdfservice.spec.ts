@@ -28,7 +28,7 @@ describe('DHTRDFService', () => {
                     });
                 });
                 services = solidServices.map(() => {
-                    return new DHTService(new DHTRDFNetwork('poso', 'http://poso.purl.org/'));
+                    return new DHTService(new DHTRDFNetwork('http://purl.org/poso/collection/'));
                 });
                 return Promise.all(
                     solidServices.map((service, i) => {
@@ -60,8 +60,8 @@ describe('DHTRDFService', () => {
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
-            expect(key1[0]).to.eql(17532);
-            expect(key2[0]).to.eql(17647);
+            expect(key1[0]).to.eql(50533);
+            expect(key2[0]).to.eql(50648);
         });
 
         it('should hash coordinates to a single key when given an accurate accuracy', () => {
@@ -69,8 +69,8 @@ describe('DHTRDFService', () => {
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 5);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
-            expect(key1[0]).to.eql(17532);
-            expect(key2[0]).to.eql(17647);
+            expect(key1[0]).to.eql(50533);
+            expect(key2[0]).to.eql(50648);
         });
 
         it('should hash coordinates to multiple keys when given an inaccurate accuracy', () => {
@@ -78,8 +78,8 @@ describe('DHTRDFService', () => {
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 20001);
             expect(key1.length).to.eql(2);
             expect(key2.length).to.eql(3);
-            expect(key1[0]).to.eql(17532);
-            expect(key2[0]).to.eql(17647);
+            expect(key1[0]).to.eql(50533);
+            expect(key2[0]).to.eql(50648);
         });
     });
 

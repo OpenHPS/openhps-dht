@@ -21,21 +21,27 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
     network: DHTRDFNetwork;
 
     addNode(nodeID: NodeID): Promise<void> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             // Do not add itself
             if (nodeID === this.nodeID) {
                 return resolve();
             }
-            
+
             try {
-                // Send an add node action
-                const action = new LDHTAddNodeAction();
-                action.actionStatus = schema.PotentialActionStatus;
-                action.agent = (this.network.node as LocalRDFNode).uri;
-                action.object = (await this.network.findNodeById(nodeID) as RemoteRDFNode).uri;
-                this.createAction(action).then(() => {
-                    resolve();
-                }).catch(reject);
+                this.network
+                    .findNodeById(nodeID)
+                    .then((node: RemoteRDFNode) => {
+                        // Send an add node action
+                        const action = new LDHTAddNodeAction();
+                        action.actionStatus = schema.PotentialActionStatus;
+                        action.agent = (this.network.node as LocalRDFNode).uri;
+                        action.object = node.uri;
+                        return this.createAction(action);
+                    })
+                    .then(() => {
+                        resolve();
+                    })
+                    .catch(reject);
             } catch (e) {
                 console.log(e);
             }
@@ -43,19 +49,25 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
     }
 
     removeNode(nodeID: NodeID): Promise<void> {
-        return new Promise(async (resolve, reject) => {
-            // Send a remove node action
-            const action = new LDHTRemoveNodeAction();
-            action.actionStatus = schema.PotentialActionStatus;
-            action.agent = (this.network.node as LocalRDFNode).uri;
-            action.object = (await this.network.findNodeById(nodeID) as LocalRDFNode).uri;
-            this.createAction(action).then(() => {
-                resolve();
-            }).catch(reject);
+        return new Promise((resolve, reject) => {
+            this.network
+                .findNodeById(nodeID)
+                .then((node: RemoteRDFNode) => {
+                    // Send a remove node action
+                    const action = new LDHTRemoveNodeAction();
+                    action.actionStatus = schema.PotentialActionStatus;
+                    action.agent = (this.network.node as LocalRDFNode).uri;
+                    action.object = node.uri;
+                    return this.createAction(action);
+                })
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
-    store(key: number, value: string | string[], visitedNodes?: Set<NodeID>, maxHops?: number): Promise<void> {
+    store(key: number, value: string | string[]): Promise<void> {
         return new Promise((resolve, reject) => {
             // Send a store action to another node
             const action = new LDHTStoreValueAction();
@@ -66,42 +78,56 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             // Value is an URI leading to the data
             entry.value = value as IriString;
             action.object = entry;
-            this.createAction(action).then(() => {
-                resolve();
-            }).catch(reject);
+            this.createAction(action)
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
     hasValue(key: number): Promise<boolean> {
         return new Promise((resolve, reject) => {
             // Access the online sources to determine if the collection contains the data
-            this.fetchRemoteNode().then((node) => {
-                return node.hasValue(key);
-            }).then(resolve).catch(reject);
+            this.fetchRemoteNode()
+                .then((node) => {
+                    return node.hasValue(key);
+                })
+                .then(resolve)
+                .catch(reject);
         });
     }
 
     findValue(key: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
             // Find the key in the collection online
-            this.fetchRemoteNode().then((node) => {
-                console.log("Finding value", key, node);
-                return node.findValue(key);
-            }).then((values) => {
-                resolve(values);
-            }).catch(reject);
+            this.network.service.logger('debug', `Finding value for key ${key} in ${this.uri}`);
+            this.fetchRemoteNode()
+                .then((node) => {
+                    return node.findValue(key);
+                })
+                .then((values) => {
+                    resolve(values);
+                })
+                .catch(reject);
         });
     }
 
     protected fetchRemoteNode(): Promise<LocalRDFNode> {
         return new Promise((resolve, reject) => {
-            this.network.solidService.getDatasetStore(this.network.solidService.session, this.uri)
+            this.network.service.logger('debug', `Fetching remote node ${this.uri}`);
+            this.network.solidService
+                .getDatasetStore(this.network.solidService.session, this.uri)
                 .then((store) => {
-                    return RDFSerializer.deserializeFromStore(DataFactory.namedNode(this.uri), store);
-                }).then((data: LocalRDFNode) => {
-                    this.actions = data.actions;
+                    const data: LocalRDFNode = RDFSerializer.deserializeFromStore(
+                        DataFactory.namedNode(this.uri),
+                        store,
+                        LocalRDFNode,
+                    );
+                    data.network = this.network;
                     return data.fetch();
-                }).then((data: LocalRDFNode) => {
+                })
+                .then((data: LocalRDFNode) => {
                     resolve(data);
                 })
                 .catch(reject);
@@ -115,9 +141,11 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             action.actionStatus = schema.PotentialActionStatus;
             action.agent = (this.network.node as LocalRDFNode).uri;
             action.timeout = 60000;
-            this.createAction(action).then(() => {
-                resolve();
-            }).catch(reject);
+            this.createAction(action)
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
         });
     }
 
@@ -126,21 +154,28 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
             const service = this.network.solidService;
             const session = service.session;
 
+            /**
+             *
+             * @param actionUri
+             */
             function getActionStatus(actionUri: IriString): Promise<IriString> {
                 return new Promise((resolve, reject) => {
-                    service.getDatasetStore(session, actionUri).then((store) => {
-                        const action: LDHTAction = RDFSerializer.deserializeFromStore(undefined, store);
-                        return resolve(action.actionStatus);
-                    }).catch(err => {
-                        service.logger('error', `Unable to get action status for ${actionUri}`, err);
-                        reject(new Error(`Unable to get action status for ${actionUri}. ${err.message}`));
-                    });
+                    service
+                        .getDatasetStore(session, actionUri)
+                        .then((store) => {
+                            const action: LDHTAction = RDFSerializer.deserializeFromStore(undefined, store);
+                            return resolve(action.actionStatus);
+                        })
+                        .catch((err) => {
+                            service.logger('error', `Unable to get action status for ${actionUri}`, err);
+                            reject(new Error(`Unable to get action status for ${actionUri}. ${err.message}`));
+                        });
                 });
             }
 
             const actionContainer = this.actions.find((a) => a.type === action.type);
             if (!actionContainer) {
-                return reject(new Error("Action container not found!"));
+                return reject(new Error('Action container not found!'));
             }
             // Random uuidv4
             const timestamp = new Date().getTime() + Math.floor(Math.random() * 1000);
@@ -149,29 +184,37 @@ export class RemoteRDFNode extends RemoteDHTNode implements RDFNode {
 
             const store = new Store();
             store.addQuads(RDFSerializer.serializeToQuads(action));
-            service.saveDataset(session, uri, store, true).then((dataset) => {
-                action.id = (dataset as any).internal_resourceInfo.sourceIri;
+            service
+                .saveDataset(session, uri, store, true)
+                .then((dataset) => {
+                    action.id = (dataset as any).internal_resourceInfo.sourceIri;
 
-                // Await the action to be saved
-                const interval = setInterval(() => {
-                    getActionStatus(action.id as IriString).then((status) => {
-                        if (status === schema.CompletedActionStatus) {
-                            clearInterval(interval);
-                            resolve(action);
-                        } else if (status === schema.FailedActionStatus) {
-                            clearInterval(interval);
-                            reject(new Error("Action failed"));
-                        } else if (status === schema.PotentialActionStatus || status === schema.ActiveActionStatus) {
-                            // Action is still active
-                        }
-                    }).catch(reject);
-                }, 1000);
-                // Create a timeout
-                setTimeout(() => {
-                    clearInterval(interval);
-                    reject(new Error("Action timed out"));
-                }, action.timeout ?? 30000);
-            }).catch(reject);
+                    // Await the action to be saved
+                    const interval = setInterval(() => {
+                        getActionStatus(action.id as IriString)
+                            .then((status) => {
+                                if (status === schema.CompletedActionStatus) {
+                                    clearInterval(interval);
+                                    resolve(action);
+                                } else if (status === schema.FailedActionStatus) {
+                                    clearInterval(interval);
+                                    reject(new Error('Action failed'));
+                                } else if (
+                                    status === schema.PotentialActionStatus ||
+                                    status === schema.ActiveActionStatus
+                                ) {
+                                    // Action is still active
+                                }
+                            })
+                            .catch(reject);
+                    }, 1000);
+                    // Create a timeout
+                    setTimeout(() => {
+                        clearInterval(interval);
+                        reject(new Error('Action timed out'));
+                    }, action.timeout ?? 30000);
+                })
+                .catch(reject);
         });
     }
 }
