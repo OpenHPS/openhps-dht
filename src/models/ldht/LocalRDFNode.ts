@@ -31,10 +31,21 @@ import { LDHTEntry } from './LDHTEntry';
     rdf: {
         type: ldht.Node,
         serializer: (value: LocalRDFNode) => {
-            return {
-                termType: 'NamedNode',
-                value: value.uri,
-            } as Partial<Thing>;
+            const thing = RDFBuilder.namedNode(value.uri);
+            if (value.network) {
+                value.network.nodes.forEach((node: LocalRDFNode) => {
+                    thing.add(
+                        tree.relation,
+                        RDFBuilder.blankNode()
+                            .add(rdf.type, tree.GreaterThanOrEqualToRelation)
+                            .add(tree.value, node.nodeID)
+                            .add(tree.path, ldht.nodeID)
+                            .add(tree.node, node.uri)
+                            .build(),
+                    );
+                });
+            }
+            return thing.build();
         },
         deserializer: (value: Thing, instance) => {
             instance.uri = value.value as IriString;
@@ -65,12 +76,17 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     @SerializableMember({
         rdf: {
             predicate: tree.relation,
-            serializer: (value: IriString) => {
+            serializer: (value: IriString, node: LocalRDFNode) => {
                 if (!value) {
                     return undefined;
                 }
                 // Create a TREE relation referencing the data
-                return RDFBuilder.blankNode().add(rdf.type, tree.Relation).add(tree.node, value).build();
+                return RDFBuilder.blankNode()
+                    .add(rdf.type, tree.GreaterThanOrEqualToRelation)
+                    .add(tree.value, node?.nodeID)
+                    .add(tree.path, ldht.nodeID)
+                    .add(tree.node, value)
+                    .build();
             },
             deserializer: (value: Thing) => {
                 const node = value.predicates[tree.node];
@@ -271,6 +287,27 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
                 .then(() => {
                     // Save the node to the network
                     return this.saveNodes();
+                })
+                .then(() => {
+                    // Update node.ttl local node
+                    return this.network.solidService.getDatasetStore(this.network.solidService.session, this.uri);
+                })
+                .then(async (store) => {
+                    const uri = await this.network.findNodeById(nodeID);
+                    const thing = RDFBuilder.namedNode(this.uri)
+                        .add(
+                            tree.relation,
+                            RDFBuilder.blankNode()
+                                .add(rdf.type, tree.GreaterThanOrEqualToRelation)
+                                .add(tree.value, nodeID)
+                                .add(tree.path, ldht.nodeID)
+                                .add(tree.node, uri)
+                                .build(),
+                        )
+                        .build();
+                    const quads = RDFSerializer.serializeToQuads(thing);
+                    store.addQuads(quads);
+                    return this.network.solidService.saveDataset(this.network.solidService.session, this.uri, store);
                 })
                 .then(() => {
                     resolve();

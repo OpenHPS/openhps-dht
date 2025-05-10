@@ -310,6 +310,12 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
 
     addNode(node: DHTNode, skip?: boolean): Promise<void> {
         return new Promise((resolve, reject) => {
+            if (node === undefined) {
+                throw new Error('Node is undefined');
+            }
+            if (this.node === undefined) {
+                throw new Error('Local node is undefined');
+            }
             // Skip if the node is already in the network
             if (this.nodes.has(node.nodeID) || node.nodeID === this.node.nodeID) {
                 resolve();
