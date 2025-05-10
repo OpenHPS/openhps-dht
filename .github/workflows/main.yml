@@ -84,9 +84,9 @@ jobs:
         uses: docker/setup-compose-action@v1
       - name: Test
         run: |
-          docker-compose up -d
+          docker compose up -d
           npm run cover:ci
-          docker-compose down
+          docker compose down
 
   documentation:
     name: Build documentation
