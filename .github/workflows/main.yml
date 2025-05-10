@@ -80,6 +80,8 @@ jobs:
             **/test-results.xml
             **/coverage
           key: ${{ runner.os }}-test-v1-${{ hashFiles('**/yarn.lock') }}-${{ github.run_number }}
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
       - name: Test
         run: |
           docker-compose up -d
