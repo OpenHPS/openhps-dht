@@ -82,7 +82,9 @@ jobs:
           key: ${{ runner.os }}-test-v1-${{ hashFiles('**/yarn.lock') }}-${{ github.run_number }}
       - name: Test
         run: |
+          docker-compose up -d
           npm run cover:ci
+          docker-compose down
 
   documentation:
     name: Build documentation
