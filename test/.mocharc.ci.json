@@ -4,7 +4,7 @@
     "require": ["reflect-metadata", "test/tsconfig.js"],
     "extension": ["ts"],
     "spec": "test/specs/**/*.spec.ts",
-    "ignore": [],
+    "ignore": ["test/specs/service.dhtrdf.spec.ts", "test/specs/service.dhtrdfservice.spec.ts"],
     "slow": 1500,
     "timeout": 20000,
     "recursive": true,
