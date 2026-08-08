@@ -1,6 +1,13 @@
 import 'mocha';
 import { expect } from 'chai';
-import { LDHTAddNodeAction, LDHTEntry, LDHTPingAction, LDHTRemoveNodeAction, LDHTStoreValueAction, LocalRDFNode } from '../../src';
+import {
+    LDHTAddNodeAction,
+    LDHTEntry,
+    LDHTPingAction,
+    LDHTRemoveNodeAction,
+    LDHTStoreValueAction,
+    LocalRDFNode,
+} from '../../src';
 import { DataFactory, IriString, RDFSerializer } from '@openhps/rdf';
 
 describe('RDFNode', () => {
@@ -11,11 +18,13 @@ describe('RDFNode', () => {
             entry.value = 'test' as any;
             const store = RDFSerializer.serializeToStore(entry);
             RDFSerializer.stringify(store, {
-                format: 'text/turtle'
-            }).then((data) => {
-                // console.log(data);
-                done();
-            }).catch(done);
+                format: 'text/turtle',
+            })
+                .then((data) => {
+                    // console.log(data);
+                    done();
+                })
+                .catch(done);
         });
 
         it('should serialize', (done) => {
@@ -35,13 +44,16 @@ describe('RDFNode', () => {
             const store = RDFSerializer.serializeToStore(node);
             store.addQuads(RDFSerializer.serializeToQuads(node.collectionObject));
             RDFSerializer.stringify(store, {
-                format: 'text/turtle'
-            }).then((data) => {
-                // Deserialize
-                return RDFSerializer.deserializeFromString(node.uri, data);
-            }).then((deserializedNode: LocalRDFNode) => {
-                done();
-            }).catch(done);
+                format: 'text/turtle',
+            })
+                .then((data) => {
+                    // Deserialize
+                    return RDFSerializer.deserializeFromString(node.uri, data);
+                })
+                .then((deserializedNode: LocalRDFNode) => {
+                    done();
+                })
+                .catch(done);
         });
 
         it('should deserialize from string', (done) => {
@@ -60,8 +72,11 @@ describe('RDFNode', () => {
     <http://localhost:3000/test1/nodes/poso/node.ttl> <http://schema.org/potentialAction> _:n3-3.
     _:n3-3 a <http://purl.org/ldht/StoreValueAction>;
         <http://schema.org/target> <http://localhost:3000/test1/nodes/poso/actions/>.
-    <http://localhost:3000/test1/nodes/poso/node.ttl> <https://w3id.org/tree#relation> _:n3-4.`
-            const deserialised: LocalRDFNode = RDFSerializer.deserializeFromString('http://localhost:3000/test1/nodes/poso/node.ttl', data);
+    <http://localhost:3000/test1/nodes/poso/node.ttl> <https://w3id.org/tree#relation> _:n3-4.`;
+            const deserialised: LocalRDFNode = RDFSerializer.deserializeFromString(
+                'http://localhost:3000/test1/nodes/poso/node.ttl',
+                data,
+            );
             expect(deserialised).to.be.an.instanceOf(LocalRDFNode);
             expect(deserialised.actions[0]).to.be.instanceOf(LDHTPingAction);
             done();
@@ -78,19 +93,23 @@ describe('RDFNode', () => {
                 new LDHTRemoveNodeAction().setTarget(actionsUrl as IriString),
                 new LDHTStoreValueAction().setTarget(actionsUrl as IriString),
             ];
-            
+
             fetch(node.uri, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'text/turtle'
-                }
-            }).then((response) => {
-                return response.text();
-            }).then((data) => {
-                return RDFSerializer.deserializeFromString(node.uri, data);
-            }).then((deserialised: LocalRDFNode) => {
-                done();
-            }).catch(done);
+                    Accept: 'text/turtle',
+                },
+            })
+                .then((response) => {
+                    return response.text();
+                })
+                .then((data) => {
+                    return RDFSerializer.deserializeFromString(node.uri, data);
+                })
+                .then((deserialised: LocalRDFNode) => {
+                    done();
+                })
+                .catch(done);
         });
     });
 });
