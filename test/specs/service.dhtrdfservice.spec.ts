@@ -10,7 +10,12 @@ describe('DHTRDFService', () => {
     let solidServices: SolidClientService[] = [];
     let models: Model[] = [];
 
-    before((done) => {
+    before(function (done) {
+        // Provisioning three Solid pods -- account login, client credentials, then
+        // the container/ACL setup each DHT node does on build -- runs well past the
+        // 20s default from .mocharc.json. Measured at ~25-30s locally against the
+        // docker-compose servers, and CI runners are not faster.
+        this.timeout(120000);
         Promise.all([
             generate('http://localhost:3000', 'test1', 'test1@test.com', 'test123'),
             generate('http://localhost:3001', 'test2', 'test2@test.com', 'test123'),
