@@ -16,4 +16,4 @@ jobs:
         uses: OpenHPS/workflows/.github/workflows/module.yml@v1
         secrets: inherit
         with:
-            {}
+            services-compose: 'docker-compose.yml'
