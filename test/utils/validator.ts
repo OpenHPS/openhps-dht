@@ -28,14 +28,21 @@ function getBoundingBox(latitude: number, longitude: number) {
 }
 
 async function validate() {
-    const totalQueries = Math.ceil(((queryBoundingBox.maxLat - queryBoundingBox.minLat) / (GRID_SIZE / 111.132954)) * ((queryBoundingBox.maxLon - queryBoundingBox.minLon) / (GRID_SIZE / 111.132954)));
+    const totalQueries = Math.ceil(
+        ((queryBoundingBox.maxLat - queryBoundingBox.minLat) / (GRID_SIZE / 111.132954)) *
+            ((queryBoundingBox.maxLon - queryBoundingBox.minLon) / (GRID_SIZE / 111.132954)),
+    );
     let count = 0;
     let maxBuildings = 0;
     console.log(`Total queries (in bounding box): ${totalQueries}`);
     const bar = new ProgressBar('[:bar] :percent :etas', { total: totalQueries });
     // Limit the queries to those in bounding box
     for (let lat = queryBoundingBox.minLat; lat < queryBoundingBox.maxLat; lat += GRID_SIZE / 111.132954) {
-        for (let lon = queryBoundingBox.minLon; lon < queryBoundingBox.maxLon; lon += GRID_SIZE / (111.132954 * Math.cos((Math.PI * lat) / 180))) {
+        for (
+            let lon = queryBoundingBox.minLon;
+            lon < queryBoundingBox.maxLon;
+            lon += GRID_SIZE / (111.132954 * Math.cos((Math.PI * lat) / 180))
+        ) {
             const boundingBox = getBoundingBox(lat, lon);
             const query = `
             [out:json];
@@ -49,7 +56,7 @@ async function validate() {
                 const url = 'https://overpass-api.de/api/interpreter';
                 const response = await fetch(url, {
                     method: 'POST',
-                    body: "data=" + encodeURIComponent(query)
+                    body: 'data=' + encodeURIComponent(query),
                 });
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.indexOf('application/json') !== -1) {
@@ -64,7 +71,7 @@ async function validate() {
             count += parseInt(data.elements[0].tags.total);
             maxBuildings = Math.max(maxBuildings, parseInt(data.elements[0].tags.total));
         }
-    }    
+    }
     // Average
     const average = Math.ceil(count / totalQueries);
     console.log(`\nAverage number of buildings in a ${GRID_SIZE}km grid: ${average.toLocaleString()}`);
