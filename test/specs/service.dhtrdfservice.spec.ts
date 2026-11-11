@@ -2,7 +2,7 @@ import 'mocha';
 import { expect } from 'chai';
 import { DHTRDFNetwork, DHTService } from '../../src';
 import { SolidClientService } from '@openhps/solid';
-import { generate } from '../utils/secret';
+import { generate, isPodAvailable } from '../utils/secret';
 import { Model, ModelBuilder } from '@openhps/core';
 
 describe('DHTRDFService', () => {
@@ -10,46 +10,48 @@ describe('DHTRDFService', () => {
     let solidServices: SolidClientService[] = [];
     let models: Model[] = [];
 
-    before(function (done) {
+    before(async function () {
         // Provisioning three Solid pods -- account login, client credentials, then
         // the container/ACL setup each DHT node does on build -- runs well past the
         // 20s default from .mocharc.json. Measured at ~25-30s locally against the
         // docker-compose servers, and CI runners are not faster.
         this.timeout(120000);
-        Promise.all([
+        const available = await Promise.all([
+            isPodAvailable('http://localhost:3000'),
+            isPodAvailable('http://localhost:3001'),
+            isPodAvailable('http://localhost:3002'),
+        ]);
+        if (available.includes(false)) {
+            // The docker-compose Solid pods are not running; skip rather than fail.
+            this.skip();
+        }
+        const secrets = await Promise.all([
             generate('http://localhost:3000', 'test1', 'test1@test.com', 'test123'),
             generate('http://localhost:3001', 'test2', 'test2@test.com', 'test123'),
             generate('http://localhost:3002', 'test3', 'test3@test.com', 'test123'),
-        ])
-            .then((secrets) => {
-                solidServices = secrets.map((secret, i) => {
-                    const oidcIssuer = `http://localhost:${3000 + i}`;
-                    return new SolidClientService({
-                        clientId: secret.id,
-                        clientSecret: secret.secret,
-                        clientName: 'OpenHPS',
-                        defaultOidcIssuer: oidcIssuer,
-                        autoLogin: true,
-                    });
-                });
-                services = solidServices.map(() => {
-                    return new DHTService(new DHTRDFNetwork('http://purl.org/poso/collection/'));
-                });
-                return Promise.all(
-                    solidServices.map((service, i) => {
-                        return ModelBuilder.create()
-                            .addService(service) // Solid service
-                            .addService(services[i]) // DHT service
-                            .withLogger(console.log)
-                            .build();
-                    }),
-                );
-            })
-            .then((m) => {
-                models = m;
-                done();
-            })
-            .catch(done);
+        ]);
+        solidServices = secrets.map((secret, i) => {
+            const oidcIssuer = `http://localhost:${3000 + i}`;
+            return new SolidClientService({
+                clientId: secret.id,
+                clientSecret: secret.secret,
+                clientName: 'OpenHPS',
+                defaultOidcIssuer: oidcIssuer,
+                autoLogin: true,
+            });
+        });
+        services = solidServices.map(() => {
+            return new DHTService(new DHTRDFNetwork('http://purl.org/poso/collection/'));
+        });
+        models = await Promise.all(
+            solidServices.map((service, i) => {
+                return ModelBuilder.create()
+                    .addService(service) // Solid service
+                    .addService(services[i]) // DHT service
+                    .withLogger(console.log)
+                    .build();
+            }),
+        );
     });
 
     describe('constructor()', () => {
