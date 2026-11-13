@@ -6,6 +6,11 @@ import { RectangleCornerBoundary, RectangleRotationBoundary } from '@openhps/geo
 import { IriString } from '@openhps/rdf';
 
 const GRID_SIZE = 10; // 10 km
+// Maximum number of partitions searched in each direction when the accuracy covers
+// multiple partitions. Bounds the number of keys returned (and thus the number of
+// lookups performed) for very large accuracies, e.g. 2000 km would otherwise cover
+// some 160k partitions.
+const MAX_ACCURACY_PARTITIONS = 10; // 100 km search radius
 
 export type Boundary =
     | GeographicalPosition[]
@@ -155,6 +160,13 @@ export class DHTService extends Service {
         const latPartition = Math.floor(latNorm / partition);
         const lonPartition = Math.floor(lngNorm / partition);
 
+        // Radix of the combined key: one more than the number of longitude partitions
+        // that fit in the normalised range (~4000). Using it as the latitude multiplier
+        // guarantees that distinct (lat, lon) partition pairs map to distinct keys:
+        // the old scheme used a fixed multiplier (31) that is smaller than the longitude
+        // partition range, so distinct partitions mapped to the same key.
+        const lonRadix = Math.floor(360 / partition) + 1;
+
         // Verify that the accuracy is not too large for the partition
         // if yes, multiple keys will be returned for each partition the accuracy covers
         let accuracyPartition = 1;
@@ -164,17 +176,27 @@ export class DHTService extends Service {
             // Get the number of partitions the accuracy covers
             accuracyPartition = Math.ceil(accuracyDegrees / partition);
         }
-        // Return multiple keys if the accuracy is too large
-        const prime = 31; // Prime key to ensure unique keys
-        if (accuracyPartition > 1) {
+        // Return multiple keys if the accuracy is too large: the keys of every
+        // partition the accuracy covers, expanded outward from the origin partition
+        // (which is always the first key).
+        const accuracyRadius = Math.min(accuracyPartition - 1, MAX_ACCURACY_PARTITIONS);
+        if (accuracyRadius > 0) {
             const keys = [];
-            for (let i = 0; i < accuracyPartition; i++) {
-                keys.push(latPartition * prime + lonPartition + i);
+            for (let d = 0; d <= accuracyRadius; d++) {
+                for (let row = -d; row <= d; row++) {
+                    for (let col = -d; col <= d; col++) {
+                        // Only the partitions on the ring at distance d
+                        if (Math.max(Math.abs(row), Math.abs(col)) !== d) {
+                            continue;
+                        }
+                        keys.push((latPartition + row) * lonRadix + (lonPartition + col));
+                    }
+                }
             }
             return keys;
         } else {
             // Combine the latitude and longitude partition to a unique key
-            return [latPartition * prime + lonPartition];
+            return [latPartition * lonRadix + lonPartition];
         }
     }
 }

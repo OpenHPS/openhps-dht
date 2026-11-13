@@ -126,7 +126,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
     static fromURI(uri: IriString): LocalRDFNode {
         const node = new LocalRDFNode();
         node.uri = uri;
-        return;
+        return node;
     }
 
     /**
@@ -256,7 +256,7 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
         }
     }
 
-    findValue(key: number, visitedNodes?: Set<NodeID>, maxHops?: number): Promise<string[]> {
+    findValue(key: number, visitedNodes: Set<NodeID> = new Set(), maxHops: number = 0): Promise<string[]> {
         return new Promise((resolve, reject) => {
             this.network.solidService.logger('debug', `Finding value for key ${key} locally in ${this.uri}`);
             super
@@ -270,7 +270,6 @@ export class LocalRDFNode extends LocalDHTNode implements RDFNode {
 
     ping(): Promise<void> {
         return new Promise((resolve) => {
-            console.log('Pinging', this.nodeID);
             resolve();
         });
     }

@@ -34,8 +34,16 @@ describe('DHTService', () => {
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
-            expect(key1[0]).to.eql(50533);
-            expect(key2[0]).to.eql(50648);
+            expect(key1[0]).to.eql(6259613);
+            expect(key2[0]).to.eql(6275608);
+        });
+
+        it('should not hash distinct partitions to the same key', () => {
+            // These two positions fall into adjacent partitions that collided under the old
+            // lat*31+lon scheme (both hashed to 31)
+            const key1 = services[0].hash(-89.85, -179.95);
+            const key2 = services[0].hash(-89.95, -177.15);
+            expect(key1[0]).to.not.eql(key2[0]);
         });
 
         it('should hash coordinates to a single key when given an accurate accuracy', () => {
@@ -43,17 +51,19 @@ describe('DHTService', () => {
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 5);
             expect(key1.length).to.eql(1);
             expect(key2.length).to.eql(1);
-            expect(key1[0]).to.eql(50533);
-            expect(key2[0]).to.eql(50648);
+            expect(key1[0]).to.eql(6259613);
+            expect(key2[0]).to.eql(6275608);
         });
 
         it('should hash coordinates to multiple keys when given an inaccurate accuracy', () => {
+            // 10001 m covers 2 partitions -> a 3x3 box of keys; 20001 m covers 3
+            // partitions -> a 5x5 box of keys. The origin partition is always first.
             const key1 = services[0].hash(50.82057996247597, 4.39222274282769, 10001);
             const key2 = services[0].hash(51.14415786460933, 3.5908935381010614, 20001);
-            expect(key1.length).to.eql(2);
-            expect(key2.length).to.eql(3);
-            expect(key1[0]).to.eql(50533);
-            expect(key2[0]).to.eql(50648);
+            expect(key1.length).to.eql(9);
+            expect(key2.length).to.eql(25);
+            expect(key1[0]).to.eql(6259613);
+            expect(key2[0]).to.eql(6275608);
         });
     });
 

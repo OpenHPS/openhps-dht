@@ -18,62 +18,7 @@ export class DHTMemoryNetwork extends DHTNetwork {
     }
 
     addNode(node: DHTNode): Promise<void> {
-        return new Promise((resolve, reject) => {
-            // Skip if the node is already in the network
-            if (this.nodes.has(node.nodeID) || node.nodeID === this.node.nodeID) {
-                resolve();
-                return;
-            } else if (node.nodeID === undefined) {
-                throw new Error('Node ID is undefined');
-            }
-
-            // Set reference to network
-            node = this.nodeHandler ? new Proxy(node, this.nodeHandler) : node;
-            node.network = this;
-
-            // Add node locally
-            this.nodes.set(node.nodeID, node);
-            this.service.logger(
-                'info',
-                `Adding node #${node.nodeID} to the network [#${this.node.nodeID}] (total: ${this.nodes.size})`,
-            );
-
-            // Avoid circular dependencies
-            const timeout = new Promise<void>((resolve) =>
-                setTimeout(() => {
-                    resolve();
-                }, 5000),
-            );
-            Promise.race([
-                Promise.all(
-                    Array.from(this.nodes.values()).map((otherNode) => {
-                        if (otherNode.nodeID === node.nodeID) {
-                            return Promise.resolve();
-                        }
-                        return Promise.all([
-                            // Add the new node to the other node
-                            otherNode.addNode(node.nodeID),
-                        ]);
-                    }),
-                ),
-                timeout,
-            ])
-                .then(() => {
-                    Promise.all(
-                        Array.from(this.nodes.values()).map((otherNode) => {
-                            if (otherNode.nodeID === node.nodeID) {
-                                return Promise.resolve();
-                            }
-                            return Promise.all([
-                                // Add the other node to the new node
-                                node.addNode(otherNode.nodeID),
-                            ]);
-                        }),
-                    );
-                    resolve();
-                })
-                .catch(reject);
-        });
+        return this.addNodeInternal(node, false);
     }
 
     removeNode(node: DHTNode): Promise<void> {
@@ -100,13 +45,12 @@ export class DHTMemoryNetwork extends DHTNetwork {
 
     findNodesByKey(key: number, count: number = 5): Promise<DHTNode[]> {
         return new Promise((resolve, reject) => {
-            Promise.all(
-                Array.from(this.nodes.values())
-                    .map((node) => node.nodeID)
-                    .sort((a, b) => this.xorDistance(a, key) - this.xorDistance(b, key))
-                    .slice(0, count)
-                    .map((nodeID) => this.findNodeById(nodeID)),
-            )
+            const nodeIDs = Array.from(this.nodes.values())
+                .map((node) => [node.nodeID, this.xorDistance(node.nodeID, key)] as const)
+                .sort((a, b) => a[1] - b[1])
+                .slice(0, count)
+                .map(([nodeID]) => nodeID);
+            Promise.all(nodeIDs.map((nodeID) => this.findNodeById(nodeID)))
                 .then(resolve)
                 .catch(reject);
         });
@@ -128,8 +72,11 @@ export class DHTMemoryNetwork extends DHTNetwork {
                                 return node
                                     .findValue(key)
                                     .then((value) => {
-                                        foundValue = value;
-                                        return true;
+                                        if (value.length > 0) {
+                                            foundValue = value;
+                                            return true;
+                                        }
+                                        return findValue();
                                     })
                                     .catch(() => {
                                         return findValue();
