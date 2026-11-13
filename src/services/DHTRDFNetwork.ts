@@ -310,13 +310,19 @@ export class DHTRDFNetwork extends DHTMemoryNetwork {
     }
 
     addNode(node: DHTNode, skip?: boolean): Promise<void> {
-        if (node === undefined) {
-            throw new Error('Node is undefined');
-        }
-        if (this.node === undefined) {
-            throw new Error('Local node is undefined');
-        }
-        return this.addNodeInternal(node, skip);
+        return new Promise((resolve, reject) => {
+            if (node === undefined) {
+                throw new Error('Node is undefined');
+            }
+            if (this.node === undefined) {
+                throw new Error('Local node is undefined');
+            }
+            this.addNodeInternal(node, skip)
+                .then(() => {
+                    resolve();
+                })
+                .catch(reject);
+        });
     }
 
     protected fetchRemoteNode(uri: IriString): Promise<LocalRDFNode> {
